@@ -4,3 +4,8 @@ vendor
 storage/logs
 .env
 storage/logs/*
+bootstrap/cache/*.php
+storage/framework/views/*.php
+storage/framework/cache/data/*
+storage/framework/sessions/*
+node_modules
