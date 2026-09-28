@@ -1,0 +1,70 @@
+/* ==== payment.css — khusus modul Payment (index, create, edit, show) ==== */
+
+.payment-page .card-header {
+    background: #198754;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Badge status pembayaran */
+.payment-status {
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.payment-status--lunas   { background: #d1e7dd; color: #0f5132; }
+.payment-status--belum-lunas { background: #fff3cd; color: #664d03; }
+.payment-status--terlambat { background: #f8d7da; color: #721c24; }
+
+/* Tabel index */
+.payment-table th {
+    white-space: nowrap;
+    background: #f8f9fa;
+}
+.payment-table td.payment-nominal {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+/* Form create/edit */
+.payment-form .form-label {
+    font-weight: 500;
+}
+.payment-form .form-section-title {
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.4rem;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+}
+
+/* Summary card di halaman index */
+.payment-summary-card {
+    border-left: 4px solid #198754;
+}
+
+/* Modal create/edit gabungan */
+.payment-modal .modal-header {
+    background: #198754;
+    color: #fff;
+}
+.payment-modal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Detail/show */
+.payment-detail-row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+.payment-detail-row:last-child { border-bottom: none; }
+.payment-detail-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+}

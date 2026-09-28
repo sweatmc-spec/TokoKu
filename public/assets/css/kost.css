@@ -1,0 +1,183 @@
+/* ── Kost Index ── */
+
+.kost-empty-state {
+    padding: 60px 0;
+    color: #152777;
+}
+
+.kost-empty-state i {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.kost-badge-available,
+.kost-badge-full {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 9999px;
+}
+
+.kost-badge-available {
+    background-color: #1a3a24;
+    color: #50cd89;
+    border: 1px solid #50cd8966;
+}
+
+.kost-badge-full {
+    background-color: #3a1a24;
+    color: #f1416c;
+    border: 1px solid #f1416c66;
+}
+
+.kost-action-btn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all .2s ease;
+}
+
+.kost-symbol {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.kost-symbol img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.kost-thumb {
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    border-radius: 6px;
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+}
+.kost-thumb:hover {
+    opacity: 0.75;
+    transform: scale(1.05);
+}
+
+/* ── Lightbox ── */
+#kostLightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+#kostLightbox.active {
+    display: flex;
+}
+#lightboxImg {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+    animation: zoomIn 0.2s ease;
+}
+#lightboxClose {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+#lightboxClose:hover {
+    background: rgba(255,255,255,0.25);
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes zoomIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+#btnAddKamar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Modal -empty (unified) ── */
+#modalKostImg {
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+#modalKostImg:hover {
+    opacity: 0.75;
+}
+
+.detail-mode .form-control[readonly] {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    padding-left: 0 !important;
+    color: var(--bs-gray-800);
+    font-weight: 600;
+    cursor: default;
+    box-shadow: none !important;
+}
+.detail-mode textarea[readonly] {
+    resize: none;
+}
+
+.kost-empty-state .kost-empty-action {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    font-family: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+    color: inherit;
+    font-weight: 900;
+    text-shadow: 0.3px 0 currentColor;  
+    cursor: pointer;
+}
+
+.kost-empty-state .kost-empty-action:hover {
+    color: #197ecb;
+}
+
+#btnClearSearch {
+    transition: color 0.15s ease;
+}
+
+#btnClearSearch i {
+    transition: color 0.15s ease;
+}
+
+#btnClearSearch:hover i,
+#btnClearSearch:active i {
+    color: #f1416c !important;
+}

@@ -1,0 +1,214 @@
+/*
+ * Custom Theme Override — Brand Accent + Sidebar Palette (sumber: Figma)
+ * -----------------------------------------------------------------------
+ * Token asli dari tailwind.config Figma:
+ *   brand.50/100/500/600/700       -> aksen indigo (dipakai di kedua mode)
+ *   sidebar.DEFAULT/surface/border -> shade GELAP (disiapkan utk dark mode)
+ *   sidebar.muted/light            -> lebih universal (dipakai di light mode)
+ *
+ * CATATAN PENTING soal #kt_aside:
+ *   Element-nya punya class "aside-dark" bawaan Metronic. Kalau suatu saat
+ *   override manual di sini kerasa berat/whack-a-mole, cara paling bersih
+ *   sebenarnya cukup hapus class "aside-dark" dari elemen #kt_aside (jadi
+ *   cuma class="aside aside-hoverable") -> Metronic punya varian light
+ *   bawaan yang otomatis benerin warna text/icon menu tanpa override manual.
+ *   File ini tetap jalan dobel di atas itu buat aksen brand indigo-nya.
+ */
+
+:root {
+    /* --- Brand (skala sama dgn Tailwind indigo) --- */
+    --brand-50:  #eef2ff;
+    --brand-100: #e0e7ff;
+    --brand-400: #818cf8;
+    --brand-500: #6366f1;
+    --brand-600: #4f46e5;
+    --brand-700: #4338ca;
+    --brand-950: #1e1b4b;
+
+    /* --- Sidebar (persis dari config Figma) --- */
+    --sidebar-default: #0f172a; /* slate-900 */
+    --sidebar-surface:  #1e293b; /* slate-800 */
+    --sidebar-border:   #334155; /* slate-700 */
+    --sidebar-muted:    #94a3b8; /* slate-400 */
+    --sidebar-light:    #f8fafc; /* slate-50  */
+
+    /* --- Turunan tambahan khusus LIGHT MODE (belum ada di config,
+           diturunkan dari slate scale yang sama) --- */
+    --sidebar-light-surface: #f1f5f9; /* slate-100 */
+    --sidebar-light-border:  #e2e8f0; /* slate-200 */
+}
+
+/* ============================================================
+   1) BRAND ACCENT COLOR (indigo)
+   ============================================================ */
+[data-bs-theme="light"] {
+    --bs-primary: var(--brand-500);
+    --bs-primary-rgb: 99, 102, 241;
+    --bs-primary-active: var(--brand-600);
+    --bs-link-color: var(--brand-500);
+    --bs-link-color-rgb: 99, 102, 241;
+}
+
+.btn-primary,
+.bg-primary {
+    background-color: var(--brand-500) !important;
+    border-color: var(--brand-500) !important;
+}
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: var(--brand-600) !important;
+    border-color: var(--brand-600) !important;
+}
+.text-primary {
+    color: var(--brand-500) !important;
+}
+.bg-light-primary {
+    background-color: var(--brand-50) !important;
+}
+
+/* ============================================================
+   2) SIDEBAR MENU — active vs "here" (ancestor) states
+   ============================================================ */
+.menu-link.active {
+    background-color: var(--brand-50) !important;
+    border-radius: 8px;
+}
+.menu-link.active .menu-title {
+    color: var(--brand-500) !important;
+    font-weight: 600;
+}
+.menu-link.active .menu-icon i,
+.menu-link.active .menu-bullet .bullet {
+    color: var(--brand-500) !important;
+}
+
+.menu-item.here > .menu-link:not(.active) {
+    background-color: transparent !important;
+}
+[data-bs-theme="light"] .menu-item.here > .menu-link:not(.active) .menu-title,
+[data-bs-theme="light"] .menu-item.here > .menu-link:not(.active) .menu-icon i {
+    color: var(--sidebar-default) !important;
+    font-weight: 600;
+}
+
+/* Label section kecil (SHOP, MASTER DATA, KEUANGAN, MANAGEMENT) */
+[data-bs-theme="light"] .menu-content .menu-heading {
+    color: var(--sidebar-muted) !important;
+}
+
+/* Panah dropdown (menu-arrow).
+   Ketauan lewat DevTools: warnanya diatur via mask-image + background-color
+   di pseudo-element `.menu-arrow:after` (BUKAN di `.menu-arrow` itu
+   sendiri) — makanya semua percobaan sebelumnya (color/background-color di
+   host, filter) nggak pernah kena elemen yang tepat. Metronic pakai
+   background-color: #ffffff di :after utk state .show/.here. */
+[data-bs-theme="light"] .menu-arrow:after {
+    background-color: var(--sidebar-muted) !important;
+}
+[data-bs-theme="light"] .menu-item.here > .menu-link .menu-arrow:after,
+[data-bs-theme="light"] .menu-item.show > .menu-link .menu-arrow:after {
+    background-color: var(--sidebar-default) !important;
+}
+
+/* Hover state — bukan item yang lagi aktif, cuma lagi disorot mouse.
+   Pakai abu-abu netral (bukan indigo, biar beda sama pill "active"),
+   dan teks/ikon-nya dipaksa gelap lagi supaya kebaca di atas hover bg. */
+[data-bs-theme="light"] .menu-link:hover:not(.active) {
+    background-color: var(--sidebar-light-surface) !important;
+    border-radius: 8px;
+}
+[data-bs-theme="light"] .menu-link:hover:not(.active) .menu-title,
+[data-bs-theme="light"] .menu-link:hover:not(.active) .menu-icon i,
+[data-bs-theme="light"] .menu-link:hover:not(.active) .menu-bullet .bullet {
+    color: var(--sidebar-default) !important;
+}
+[data-bs-theme="light"] .menu-link:hover:not(.active) .menu-arrow:after {
+    background-color: var(--sidebar-default) !important;
+}
+
+/* ============================================================
+   3) HEADER, ASIDE, & LOGO BOX BACKGROUND
+   ============================================================ */
+[data-bs-theme="light"] #kt_header {
+    background-color: var(--sidebar-light) !important;
+    border-bottom: 1px solid var(--sidebar-light-border);
+}
+
+[data-bs-theme="light"] #kt_aside,
+[data-bs-theme="light"] #kt_aside_menu,
+#kt_aside[data-bs-theme="dark"],
+#kt_aside[data-bs-theme="light"] {
+    background-color: var(--sidebar-light) !important;
+}
+[data-bs-theme="light"] #kt_aside {
+    border-right: 1px solid var(--sidebar-light-border);
+}
+
+[data-bs-theme="light"] #kt_aside_logo,
+[data-bs-theme="light"] .aside-logo,
+#kt_aside_logo[data-bs-theme="dark"],
+.aside-logo[data-bs-theme="dark"] {
+    background-color: var(--sidebar-light) !important;
+    border-bottom: 1px solid var(--sidebar-light-border);
+}
+
+[data-bs-theme="light"] #kt_aside_toggle,
+[data-bs-theme="light"] .aside-toggle {
+    color: var(--brand-500) !important;
+}
+
+/* --- Brand header (badge "T" + wordmark), sesuai Figma --- */
+#kt_aside_logo {
+    height: 4rem;               /* h-16 */
+    padding-left: 1.25rem;      /* px-5 */
+    padding-right: 1.25rem;
+}
+.brand-logo-wrap {
+    gap: 0.625rem;               /* gap-2.5 */
+}
+.brand-badge {
+    width: 2rem;                 /* w-8 */
+    height: 2rem;                /* h-8 */
+    flex-shrink: 0;
+    border-radius: 0.5rem;       /* rounded-lg */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to top right, var(--brand-600), var(--brand-400));
+    box-shadow: 0 4px 6px -1px rgba(30, 27, 75, 0.4),
+                0 2px 4px -2px rgba(30, 27, 75, 0.4); /* shadow-md shadow-indigo-950/40 */
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.125rem;         /* text-lg */
+    letter-spacing: 0.05em;      /* tracking-wider */
+}
+.brand-text-dark,
+.brand-text-accent {
+    font-size: 1.25rem;          /* text-xl */
+    font-weight: 700;
+    letter-spacing: -0.025em;    /* tracking-tight */
+}
+.brand-text-dark {
+    color: var(--sidebar-default); /* text-slate-900 */
+}
+.brand-text-accent {
+    color: var(--brand-500);       /* text-brand-500 */
+}
+
+/* ============================================================
+   4) DARK MODE — tetap seperti sebelumnya untuk saat ini
+   ============================================================ */
+[data-bs-theme="dark"] #kt_header,
+[data-bs-theme="dark"] #kt_aside,
+[data-bs-theme="dark"] #kt_aside_logo {
+    background-color: #111116 !important;
+}
+
+/* "Toko" dipakai --sidebar-default (nyaris hitam) utk light mode.
+   Di dark mode dibalik pakai --sidebar-light (nyaris putih) biar kebaca
+   di atas background gelap. "Ku" (brand-text-accent) tetap indigo,
+   kontrasnya udah cukup di kedua mode. */
+[data-bs-theme="dark"] .brand-text-dark {
+    color: var(--sidebar-light) !important;
+}
