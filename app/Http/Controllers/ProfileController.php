@@ -43,12 +43,12 @@ class ProfileController extends Controller
         $user->username = $validated['username'];
 
         if ($request->hasFile('avatar')) {
-            // Hapus foto lama di s3_avatars sebelum menyimpan yang baru
+            // Hapus foto lama di supabase_avatars sebelum menyimpan yang baru
             if ($user->avatar) {
-                Storage::disk('s3_avatars')->delete($user->avatar);
+                Storage::disk('supabase_avatars')->delete($user->avatar);
             }
 
-            $user->avatar = $request->file('avatar')->store('avatars', 's3_avatars');
+            $user->avatar = $request->file('avatar')->store('avatars', 'supabase_avatars');
         }
 
         $user->save();
@@ -64,7 +64,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         if ($user->avatar) {
-            Storage::disk('s3_avatars')->delete($user->avatar);
+            Storage::disk('supabase_avatars')->delete($user->avatar);
             $user->avatar = null;
             $user->save();
         }

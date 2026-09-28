@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
     ]);
     $middleware->redirectUsersTo('/');
+    $middleware->trustProxies(at: '*');
+
 })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

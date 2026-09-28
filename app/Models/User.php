@@ -30,10 +30,14 @@ public function getAvatarUrlAttribute(): string
         return asset('assets/media/avatars/blank.png');
     }
 
-    $host   = request()->getHost();   // otomatis ambil host yang lagi dipakai browser
-    $bucket = config('filesystems.disks.s3_avatars.bucket');
+    return Storage::disk('supabase_avatars')->url($this->avatar);
 
-    return "http://{$host}:9000/{$bucket}/{$this->avatar}";
+    /**
+     * backup minio untuk test kalau mau
+    *$host   = request()->getHost();   // otomatis ambil host yang lagi dipakai browser
+    *$bucket = config('filesystems.disks.supabase_avatars.bucket');
+
+    *return "http://{$host}:9000/{$bucket}/{$this->avatar}"; */
 }
 
     /**

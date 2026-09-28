@@ -435,7 +435,7 @@ class AbsensiController extends Controller
         }
 
         // simpan foto ke MinIO lewat disk 's3', dikelompokkan per user
-        $path = $request->file('photo')->store('absensi/' . auth()->id(), 's3_absensi');
+        $path = $request->file('photo')->store('absensi/' . auth()->id(), 'supabase_absensi');
 
         Absensi::create([
             'user_id' => auth()->id(),

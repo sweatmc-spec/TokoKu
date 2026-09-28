@@ -2,8 +2,8 @@ FROM php:8.4-fpm
 
 # System dependencies + PHP extensions Laravel/kost-app needs
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev libcurl4-openssl-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip xml dom simplexml curl
+    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev libcurl4-openssl-dev libpq-dev \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip xml dom simplexml curl
 
 # Redis extension (used by your broadcasting setup)
 RUN pecl install redis && docker-php-ext-enable redis

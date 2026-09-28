@@ -3,6 +3,10 @@ vendor
 .git
 storage/logs
 .env
+.env.*
+!.env.example
+database/database.sqlite
+tests
 storage/logs/*
 bootstrap/cache/*.php
 storage/framework/views/*.php
