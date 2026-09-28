@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'options' => [
+            PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
+            ],
         ],
 
         'sqlsrv' => [
@@ -154,6 +157,7 @@ return [
         ],
 
         'default' => [
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
@@ -167,6 +171,7 @@ return [
         ],
 
         'cache' => [
+            'scheme' => env('REDIS_SCHEME', 'tcp'),
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),

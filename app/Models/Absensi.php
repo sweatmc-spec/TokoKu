@@ -48,6 +48,6 @@ class Absensi extends Model
     
     public function getPhotoUrlAttribute(): string
     {
-        return Storage::disk('s3_absensi')->url($this->photo_path);
+        return Storage::disk('supabase_absensi')->url($this->photo_path);
     }
 }
