@@ -101,8 +101,8 @@
                 <div class="card h-100 border-start border-4 border-info">
                     <div class="card-body">
                         <div class="fs-8 text-muted text-uppercase fw-bold mb-2">Izin & Sakit</div>
-                        <div class="fs-2 fw-bold">0 <span class="fs-7 text-muted fw-normal">hari</span></div>
-                        <div class="fs-8 text-muted mt-1">Fitur izin/sakit belum tersedia</div>
+                        <div class="fs-2 fw-bold">{{ $izinSakitCount }} <span class="fs-7 text-muted fw-normal">hari</span></div>
+                        <div class="fs-8 text-muted mt-1">{{ $sakitCount }} sakit, {{ $izinCount }} izin/cuti{{ $menungguCount > 0 ? ' · ' . $menungguCount . ' menunggu' : '' }}</div>
                     </div>
                 </div>
             </div>
@@ -133,12 +133,13 @@
             <div class="card-header flex-wrap gap-3">
                 <div>
                     <h3 class="card-title mb-0">Rincian Harian</h3>
-                    <div class="text-muted fs-8">Jam masuk & pulang berdasarkan stempel waktu server saat absen.</div>
+                    <div class="text-muted fs-8">Jam masuk & pulang berdasarkan stempel waktu server saat absen. Sabtu dan Minggu tampil sebagai Libur.</div>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" id="tab-rincian-kerja" class="btn btn-sm btn-success" onclick="switchRincianTab('kerja')">Hari kerja</button>
+                    {{-- "Semua tanggal" jadi tab awal supaya hari libur (mis. Sabtu/Minggu) ikut tampil --}}
+                    <button type="button" id="tab-rincian-semua" class="btn btn-sm btn-success" onclick="switchRincianTab('semua')">Semua tanggal</button>
+                    <button type="button" id="tab-rincian-kerja" class="btn btn-sm btn-light" onclick="switchRincianTab('kerja')">Hari kerja</button>
                     <button type="button" id="tab-rincian-perhatian" class="btn btn-sm btn-light" onclick="switchRincianTab('perhatian')">Perlu perhatian</button>
-                    <button type="button" id="tab-rincian-semua" class="btn btn-sm btn-light" onclick="switchRincianTab('semua')">Semua tanggal</button>
                 </div>
             </div>
             <div class="card-body">
@@ -176,12 +177,25 @@
                                         'Hadir' => 'badge-light-success',
                                         'Lupa Absen Pulang' => 'badge-light-warning',
                                         'Tanpa Keterangan' => 'badge-light-danger',
+                                        'Sakit' => 'badge-light-info',
+                                        'Izin' => 'badge-light-primary',
+                                        'Cuti' => 'badge-light-dark',
+                                        'Sakit (Menunggu)', 'Izin (Menunggu)', 'Cuti (Menunggu)' => 'badge-light-warning',
                                         default => 'badge-light-secondary', // Libur & Belum Mulai
                                     };
+
+                                    // penjelasan untuk hari tanpa absensi, supaya tidak terlihat "kosong"
+                                    $keterangan = match ($row['status']) {
+                                        'Libur' => 'Akhir pekan (tidak ada absensi)',
+                                        'Belum Mulai' => 'Belum ada absen pertama',
+                                        default => $row['lokasi'],
+                                    };
+
                                     $searchKey = strtolower(
                                         $row['date']->translatedFormat('d M Y') . ' ' .
                                         $row['date']->translatedFormat('l') . ' ' .
-                                        $row['lokasi']
+                                        $row['status'] . ' ' .
+                                        $keterangan
                                     );
                                 @endphp
                                 <tr class="rincian-row"
@@ -194,7 +208,7 @@
                                     <td>{{ $row['masuk']?->recorded_at->format('H:i') ?? '-' }}</td>
                                     <td>{{ $row['pulang']?->recorded_at->format('H:i') ?? '-' }}</td>
                                     <td>{{ $row['durasi'] }}</td>
-                                    <td>{{ $row['lokasi'] }}</td>
+                                    <td>{{ $keterangan }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="7" class="text-center text-muted py-5">Tidak ada data pada periode ini.</td></tr>
@@ -228,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageInfo = document.getElementById('rincian-page-info');
     const pageLabel = document.getElementById('rincian-page-label');
 
-    let currentTab = 'kerja';
+    let currentTab = 'semua'; // tab awal: semua tanggal, termasuk hari libur
     let currentPage = 1;
 
     function rows() {
@@ -272,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.switchRincianTab = function (tab) {
         currentTab = tab;
         currentPage = 1;
-        ['kerja', 'perhatian', 'semua'].forEach((t) => {
+        ['semua', 'kerja', 'perhatian'].forEach((t) => {
             const btn = document.getElementById('tab-rincian-' + t);
             btn.classList.toggle('btn-success', t === tab);
             btn.classList.toggle('btn-light', t !== tab);

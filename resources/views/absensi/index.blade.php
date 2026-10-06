@@ -24,6 +24,19 @@
         </div>
     @endif
 
+    {{-- Hari ini tercatat sakit / izin / cuti: absen masuk & pulang dinonaktifkan --}}
+    @if ($pengajuanHariIni)
+        <div class="col-12">
+            <div class="alert {{ $pengajuanHariIni->status === 'menunggu' ? 'alert-warning' : 'alert-info' }} d-flex align-items-center">
+                <span>
+                    Hari ini kamu tercatat <strong>{{ strtolower($pengajuanHariIni->type_label) }}</strong>
+                    ({{ $pengajuanHariIni->status === 'menunggu' ? 'menunggu pemeriksaan admin' : 'sudah diterima' }}),
+                    jadi absen masuk dan pulang dinonaktifkan.
+                </span>
+            </div>
+        </div>
+    @endif
+
     {{-- HERO BANNER --}}
     <div class="col-12">
         <div class="card bg-primary">
@@ -49,6 +62,8 @@
                 <div class="fs-8 text-muted text-uppercase fw-bold mb-2">Status Masuk</div>
                 @if ($absensiMasuk)
                     <span class="badge badge-light-success">Sudah Absen</span>
+                @elseif ($pengajuanHariIni)
+                    <span class="badge badge-light-info">{{ $pengajuanHariIni->type_label }}</span>
                 @else
                     <span class="badge badge-light-warning">Belum Absen</span>
                 @endif
@@ -69,6 +84,8 @@
                 <div class="fs-8 text-muted text-uppercase fw-bold mb-2">Status Pulang</div>
                 @if ($absensiPulang)
                     <span class="badge badge-light-success">Sudah Absen</span>
+                @elseif ($pengajuanHariIni)
+                    <span class="badge badge-light-info">{{ $pengajuanHariIni->type_label }}</span>
                 @else
                     <span class="badge badge-light-secondary">Belum Absen</span>
                 @endif
@@ -89,7 +106,14 @@
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Hai, apa kabar?</h3>
-                <div class="card-toolbar text-muted fs-7">Pilih opsi absensi hari ini</div>
+                <div class="card-toolbar d-flex align-items-center gap-3">
+                    <span class="text-muted fs-7">Pilih opsi absensi hari ini</span>
+                    @can('absensi-pengajuan.view')
+                        <a href="{{ route('pengajuan.index') }}" class="btn btn-sm btn-light-dark">
+                            Riwayat Pengajuan
+                        </a>
+                    @endcan
+                </div>
             </div>
             <div class="card-body">
                 <div class="row g-4">
@@ -99,30 +123,40 @@
                                 class="btn btn-outline btn-outline-dashed btn-active-light-success w-100 h-100 p-5 text-start"
                                 data-bs-toggle="modal" data-bs-target="#absensiModal"
                                 data-type="masuk"
-                                {{ $absensiMasuk ? 'disabled' : '' }}>
+                                {{ ($absensiMasuk || $pengajuanHariIni) ? 'disabled' : '' }}>
                             <i class="ki-duotone ki-check-square fs-2x text-success mb-3 d-block"><span class="path1"></span><span class="path2"></span></i>
                             <div class="fw-bold text-gray-900">Hadir (Masuk)</div>
                             <div class="fs-8 text-muted">Biometrik wajah & GPS</div>
                         </button>
                     </div>
 
-                    {{-- Sakit — belum dibangun --}}
+                    @can('absensi-pengajuan.create')
+                    {{-- Sakit --}}
                     <div class="col-6 col-lg-3">
-                        <div class="btn btn-outline btn-outline-dashed w-100 h-100 p-5 text-start opacity-50" style="cursor:not-allowed">
-                            <i class="ki-duotone ki-cross-square fs-2x text-danger mb-3 d-block"><span class="path1"></span><span class="path2"></span></i>
+                        <button type="button"
+                                class="btn btn-outline btn-outline-dashed btn-active-light-info w-100 h-100 p-5 text-start"
+                                data-bs-toggle="modal" data-bs-target="#pengajuanModal"
+                                data-type="sakit"
+                                {{ $absensiMasuk ? 'disabled' : '' }}>
+                            <i class="ki-duotone ki-cross-square fs-2x text-info mb-3 d-block"><span class="path1"></span><span class="path2"></span></i>
                             <div class="fw-bold text-gray-900">Sakit</div>
-                            <div class="fs-8 text-muted">Segera hadir</div>
-                        </div>
+                            <div class="fs-8 text-muted">{{ $absensiMasuk ? 'Sudah absen masuk hari ini' : 'Sakit hari ini + bukti foto' }}</div>
+                        </button>
                     </div>
 
-                    {{-- Izin / Cuti — belum dibangun --}}
+                    {{-- Izin / Cuti --}}
                     <div class="col-6 col-lg-3">
-                        <div class="btn btn-outline btn-outline-dashed w-100 h-100 p-5 text-start opacity-50" style="cursor:not-allowed">
+                        <button type="button"
+                                class="btn btn-outline btn-outline-dashed btn-active-light-warning w-100 h-100 p-5 text-start"
+                                data-bs-toggle="modal" data-bs-target="#pengajuanModal"
+                                data-type="izin"
+                                {{ $absensiMasuk ? 'disabled' : '' }}>
                             <i class="ki-duotone ki-calendar fs-2x text-warning mb-3 d-block"><span class="path1"></span><span class="path2"></span></i>
                             <div class="fw-bold text-gray-900">Izin / Cuti</div>
-                            <div class="fs-8 text-muted">Segera hadir</div>
-                        </div>
+                            <div class="fs-8 text-muted">{{ $absensiMasuk ? 'Sudah absen masuk hari ini' : 'Diperiksa admin dulu' }}</div>
+                        </button>
                     </div>
+                    @endcan
 
                     {{-- Absen Pulang --}}
                     <div class="col-6 col-lg-3">
@@ -130,7 +164,7 @@
                                 class="btn btn-outline btn-outline-dashed btn-active-light-primary w-100 h-100 p-5 text-start"
                                 data-bs-toggle="modal" data-bs-target="#absensiModal"
                                 data-type="pulang"
-                                {{ (!$absensiMasuk || $absensiPulang) ? 'disabled' : '' }}>
+                                {{ (! $absensiMasuk || $absensiPulang || $pengajuanHariIni) ? 'disabled' : '' }}>
                             <i class="ki-duotone ki-exit-right fs-2x text-primary mb-3 d-block"><span class="path1"></span><span class="path2"></span></i>
                             <div class="fw-bold text-gray-900">Absen Pulang</div>
                             <div class="fs-8 text-muted">Lapor kepulangan</div>
@@ -256,9 +290,12 @@
                         <img id="captured-photo" class="w-100 h-100 object-fit-cover d-none" alt="Foto absensi">
                     </div>
 
+                    {{-- Pesan error kamera (izin ditolak, kamera dipakai aplikasi lain, dll) — terpisah dari status GPS --}}
+                    <div id="camera-message" class="alert alert-danger py-2 px-3 fs-7 mb-4 d-none"></div>
+
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <button type="button" id="btn-capture" class="btn btn-sm btn-light-primary">
+                            <button type="button" id="btn-capture" class="btn btn-sm btn-light-primary" disabled>
                                 <i class="ki-duotone ki-camera fs-3"><span class="path1"></span><span class="path2"></span></i>
                                 Ambil Foto
                             </button>
@@ -284,10 +321,85 @@
         </div>
     </div>
 </div>
+
+{{-- MODAL: pengajuan sakit / izin / cuti — bisa dari mana saja, tidak ada cek lokasi --}}
+<div class="modal fade" id="pengajuanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="pengajuan-form" action="{{ route('pengajuan.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="type" id="pengajuan-type-input">
+
+                <div class="modal-header">
+                    <h4 class="modal-title" id="pengajuan-title-text">Ajukan Sakit</h4>
+                    <button type="button" class="btn btn-icon btn-sm btn-active-light-primary" data-bs-dismiss="modal" aria-label="Tutup">
+                        <i class="ki-duotone ki-cross fs-2"><span class="path1"></span><span class="path2"></span></i>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    {{-- Hanya muncul untuk Izin/Cuti, supaya user memilih salah satu jenisnya --}}
+                    <div id="pengajuan-jenis-wrap" class="mb-4 d-none">
+                        <label class="form-label fw-bold">Jenis Pengajuan</label>
+                        <select id="pengajuan-jenis-select" class="form-select">
+                            <option value="izin">Izin</option>
+                            <option value="cuti">Cuti</option>
+                        </select>
+                    </div>
+
+                    {{-- Sakit: tanggal otomatis hari ini, jadi tidak ada input tanggal --}}
+                    <div id="pengajuan-sakit-note" class="alert alert-light-info mb-4 d-none">
+                        Sakit dicatat untuk <strong>hari ini, {{ now()->translatedFormat('d F Y') }}</strong>.
+                        Kalau besok masih sakit, laporkan lagi besok.
+                    </div>
+
+                    {{-- Izin / Cuti: pilih rentang tanggal sendiri --}}
+                    <div id="pengajuan-tanggal-wrap" class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Tanggal Mulai</label>
+                            <input type="date" name="tanggal_mulai" id="pengajuan-tanggal-mulai" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Tanggal Selesai</label>
+                            <input type="date" name="tanggal_selesai" id="pengajuan-tanggal-selesai" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Alasan</label>
+                        <textarea name="alasan" class="form-control" rows="3" minlength="5" maxlength="1000" required
+                                  placeholder="Jelaskan alasan secara singkat..."></textarea>
+                    </div>
+
+                    {{-- Hanya muncul untuk Sakit --}}
+                    <div id="pengajuan-foto-wrap" class="mb-2 d-none">
+                        <label class="form-label fw-bold">Foto Bukti (surat keterangan dokter, dll)</label>
+                        <input type="file" name="foto" id="pengajuan-foto-input" accept="image/*" class="form-control">
+                        <div class="form-text">Maksimal 5 MB.</div>
+                        <div id="pengajuan-foto-error" class="alert alert-danger py-2 px-3 fs-7 mt-3 mb-0 d-none"></div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Kembali</button>
+                    <button type="submit" id="pengajuan-submit" class="btn btn-success">Kirim Pengajuan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
+    // Batas ukuran foto di browser. Samakan dengan rule max di controller.
+    const ABSENSI_MAX_FOTO_MB = 5;    // AbsensiController@store: max:5120
+    const PENGAJUAN_MAX_FOTO_MB = 5;  // samakan dengan rule 'foto' di PengajuanController
+
+    function formatUkuranFile(bytes) {
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
 document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('absensiModal');
     const modalTitle = document.getElementById('modal-title-text');
@@ -300,7 +412,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnRetake = document.getElementById('btn-retake');
     const btnSubmit = document.getElementById('btn-submit');
     const btnSubmitLabel = document.getElementById('btn-submit-label');
+    const btnSubmitSpinner = document.getElementById('btn-submit-spinner');
     const gpsStatus = document.getElementById('gps-status');
+    const cameraMessage = document.getElementById('camera-message');
     const form = document.getElementById('absensi-form');
     const photoInput = document.getElementById('photo-input');
     const latitudeInput = document.getElementById('latitude-input');
@@ -310,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let photoBlob = null;
     let currentPosition = null;
     let watchId = null;
+    let modalDibuka = false;
 
     function resetModalState() {
         photoBlob = null;
@@ -319,6 +434,8 @@ document.addEventListener('DOMContentLoaded', function () {
         video.classList.remove('d-none');
         btnRetake.classList.add('d-none');
         btnCapture.classList.remove('d-none');
+        btnCapture.disabled = true; // baru aktif setelah kamera benar-benar menampilkan gambar
+        tampilkanPesanKamera('');
         gpsStatus.className = 'badge badge-light-secondary';
         gpsStatus.innerHTML = '<i class="ki-duotone ki-geolocation fs-6 me-1"><span class="path1"></span><span class="path2"></span></i> Mencari lokasi...';
         updateSubmitState();
@@ -328,7 +445,66 @@ document.addEventListener('DOMContentLoaded', function () {
         const ready = photoBlob && currentPosition;
         btnSubmit.disabled = !ready;
         btnSubmitLabel.textContent = ready ? 'Kirim Absensi' : (currentPosition ? 'Ambil foto dulu' : 'Mencari Lokasi...');
+        // spinner hanya saat masih mencari lokasi
+        btnSubmitSpinner.classList.toggle('d-none', Boolean(currentPosition));
     }
+
+    // ---------- Kamera ----------
+    // Pesan kamera punya tempat sendiri (bukan di badge GPS), supaya tidak tertimpa status lokasi.
+    function tampilkanPesanKamera(teks) {
+        cameraMessage.textContent = teks;
+        cameraMessage.classList.toggle('d-none', ! teks);
+    }
+
+    function pesanErrorKamera(error) {
+        switch (error?.name) {
+            case 'NotAllowedError':
+            case 'PermissionDeniedError':
+                return 'Izin kamera ditolak. Klik ikon gembok/kamera di address bar, izinkan kamera, lalu buka ulang jendela ini.';
+            case 'NotFoundError':
+            case 'DevicesNotFoundError':
+                return 'Kamera tidak ditemukan di perangkat ini.';
+            case 'NotReadableError':
+            case 'TrackStartError':
+                return 'Kamera sedang dipakai aplikasi atau tab lain. Tutup yang lain, lalu buka ulang jendela ini.';
+            default:
+                return 'Kamera tidak dapat dibuka' + (error?.name ? ' (' + error.name + ')' : '') + '.';
+        }
+    }
+
+    async function mulaiKamera() {
+        // getUserMedia hanya tersedia di HTTPS atau localhost
+        if (! navigator.mediaDevices?.getUserMedia) {
+            tampilkanPesanKamera('Browser ini tidak mendukung kamera, atau halaman tidak dibuka lewat HTTPS / localhost.');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+
+            // jendela sudah ditutup sebelum izin kamera selesai: matikan lagi supaya lampu kamera tidak menyala terus
+            if (! modalDibuka) {
+                stream.getTracks().forEach((track) => track.stop());
+                return;
+            }
+
+            mediaStream = stream;
+            video.srcObject = stream;
+            await video.play();
+        } catch (error) {
+            if (modalDibuka) {
+                tampilkanPesanKamera(pesanErrorKamera(error));
+            }
+        }
+    }
+
+    // Tombol Ambil Foto baru aktif setelah kamera benar-benar mengirim gambar
+    video.addEventListener('playing', () => {
+        if (video.videoWidth > 0) {
+            btnCapture.disabled = false;
+            tampilkanPesanKamera('');
+        }
+    });
 
     // ---------- Buka modal: mulai kamera + geolokasi ----------
     modalEl.addEventListener('show.bs.modal', function (event) {
@@ -338,17 +514,9 @@ document.addEventListener('DOMContentLoaded', function () {
         typeInput.value = type;
         modalTitle.textContent = type === 'masuk' ? 'Absen Masuk' : 'Absen Pulang';
 
+        modalDibuka = true;
         resetModalState();
-
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-            .then((stream) => {
-                mediaStream = stream;
-                video.srcObject = stream;
-            })
-            .catch(() => {
-                gpsStatus.className = 'badge badge-light-danger';
-                gpsStatus.textContent = 'Kamera tidak dapat diakses';
-            });
+        mulaiKamera();
 
         if ('geolocation' in navigator) {
             watchId = navigator.geolocation.watchPosition(
@@ -373,10 +541,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- Tutup modal: matikan kamera & GPS ----------
     modalEl.addEventListener('hidden.bs.modal', function () {
+        modalDibuka = false;
+
         if (mediaStream) {
             mediaStream.getTracks().forEach((track) => track.stop());
             mediaStream = null;
         }
+        video.srcObject = null;
         if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
@@ -386,11 +557,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- Ambil foto ----------
     btnCapture.addEventListener('click', () => {
+        // Kamera belum mengirim gambar = ukuran video 0, canvas 0x0, lalu toBlob() mengembalikan null
+        // dan URL.createObjectURL(null) melempar TypeError. Tahan di sini dengan pesan yang jelas.
+        if (! video.videoWidth || ! video.videoHeight) {
+            tampilkanPesanKamera('Kamera belum siap. Tunggu gambar kamera muncul, lalu ambil foto.');
+            return;
+        }
+
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0);
 
         canvas.toBlob((blob) => {
+            if (! blob) {
+                tampilkanPesanKamera('Gagal mengambil foto. Coba lagi.');
+                return;
+            }
+                if (blob.size > ABSENSI_MAX_FOTO_MB * 1024 * 1024) {
+                tampilkanPesanKamera('Ukuran foto ' + formatUkuranFile(blob.size) + ' terlalu besar. Maksimal ' + ABSENSI_MAX_FOTO_MB + ' MB. Coba ambil ulang.');
+                return;
+            }
+
+            tampilkanPesanKamera('');
             photoBlob = blob;
             capturedPhoto.src = URL.createObjectURL(blob);
             capturedPhoto.classList.remove('d-none');
@@ -414,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function () {
         video.classList.remove('d-none');
         btnRetake.classList.add('d-none');
         btnCapture.classList.remove('d-none');
+        btnCapture.disabled = ! (video.videoWidth > 0);
         updateSubmitState();
     });
 
@@ -429,6 +618,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         btnSubmit.disabled = true;
         btnSubmitLabel.textContent = 'Mengirim...';
+        btnSubmitSpinner.classList.remove('d-none');
     });
 
     // ---------- Jam berjalan di hero banner ----------
@@ -460,9 +650,108 @@ function switchLogTab(type) {
     document.getElementById('tab-log-pulang').classList.toggle('active', !isMasuk);
 
     // reset search supaya tidak membingungkan saat pindah tab
-    const searchInput = document.getElementById('log-search-input');
-    searchInput.value = '';
+    const searchInput2 = document.getElementById('log-search-input');
+    searchInput2.value = '';
     document.querySelectorAll('.log-row').forEach((row) => row.classList.remove('d-none'));
 }
+
+// ---------- Modal pengajuan: Sakit / Izin / Cuti ----------
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('pengajuanModal');
+    const titleText = document.getElementById('pengajuan-title-text');
+    const typeInput = document.getElementById('pengajuan-type-input');
+    const jenisWrap = document.getElementById('pengajuan-jenis-wrap');
+    const jenisSelect = document.getElementById('pengajuan-jenis-select');
+    const fotoWrap = document.getElementById('pengajuan-foto-wrap');
+    const fotoInput = document.getElementById('pengajuan-foto-input');
+    const tanggalMulai = document.getElementById('pengajuan-tanggal-mulai');
+    const tanggalSelesai = document.getElementById('pengajuan-tanggal-selesai');
+    const tanggalWrap = document.getElementById('pengajuan-tanggal-wrap');
+    const sakitNote = document.getElementById('pengajuan-sakit-note');
+    const form = document.getElementById('pengajuan-form');
+    const fotoError = document.getElementById('pengajuan-foto-error');
+    const maxFotoBytes = PENGAJUAN_MAX_FOTO_MB * 1024 * 1024;
+
+    function tampilkanErrorFoto(teks) {
+        fotoError.textContent = teks;
+        fotoError.classList.toggle('d-none', ! teks);
+    }
+
+    function pesanFotoTerlaluBesar(file) {
+        return 'Ukuran foto ' + formatUkuranFile(file.size) + ' terlalu besar. Maksimal ' + PENGAJUAN_MAX_FOTO_MB + ' MB.';
+    }
+
+    // cek begitu file dipilih
+    fotoInput.addEventListener('change', function () {
+        const file = this.files[0];
+
+        if (file && file.size > maxFotoBytes) {
+            tampilkanErrorFoto(pesanFotoTerlaluBesar(file));
+            this.value = ''; // kosongkan supaya tidak ikut terkirim
+            return;
+        }
+
+        tampilkanErrorFoto('');
+    });
+
+    // jaring pengaman saat submit
+    form.addEventListener('submit', function (e) {
+        const file = fotoInput.files[0];
+
+        if (file && file.size > maxFotoBytes) {
+            e.preventDefault();
+            tampilkanErrorFoto(pesanFotoTerlaluBesar(file));
+        }
+    });
+
+    function terapkanJenis(jenis) {
+        typeInput.value = jenis;
+        const isSakit = jenis === 'sakit';
+
+        // Sakit: tanggal otomatis hari ini (diisi server), jadi input tanggal disembunyikan.
+        // disabled = tidak ikut terkirim dan tidak ikut divalidasi browser.
+        tanggalWrap.classList.toggle('d-none', isSakit);
+        sakitNote.classList.toggle('d-none', ! isSakit);
+        tanggalMulai.disabled = isSakit;
+        tanggalSelesai.disabled = isSakit;
+        tanggalMulai.required = ! isSakit;
+        tanggalSelesai.required = ! isSakit;
+
+        fotoWrap.classList.toggle('d-none', ! isSakit);
+        fotoInput.required = isSakit;
+
+        if (isSakit) {
+            titleText.textContent = 'Ajukan Sakit';
+        } else {
+            titleText.textContent = jenis === 'cuti' ? 'Ajukan Cuti' : 'Ajukan Izin';
+            fotoInput.value = '';
+            // izin/cuti mulai dari hari ini; pakai tanggal lokal browser (bukan UTC dari toISOString)
+            const hariIni = new Date().toLocaleDateString('en-CA');
+            tanggalMulai.min = hariIni;
+            tanggalSelesai.min = hariIni;
+        }
+    }
+
+    modalEl.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const type = trigger?.dataset.type ?? 'sakit';
+
+        form.reset();
+        tampilkanErrorFoto(''); 
+        jenisWrap.classList.toggle('d-none', type === 'sakit');
+        if (type !== 'sakit') {
+            jenisSelect.value = 'izin';
+        }
+
+        terapkanJenis(type);
+    });
+
+    jenisSelect.addEventListener('change', () => terapkanJenis(jenisSelect.value));
+
+    // tanggal selesai tidak boleh lebih awal dari tanggal mulai
+    tanggalMulai.addEventListener('change', function () {
+        document.getElementById('pengajuan-tanggal-selesai').min = this.value;
+    });
+});
 </script>
 @endpush

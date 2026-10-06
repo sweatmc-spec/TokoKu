@@ -19,7 +19,8 @@
 			<div class="menu menu-column menu-title-gray-800 menu-state-title-primary menu-state-icon-primary menu-state-bullet-primary menu-arrow-gray-500" id="#kt_aside_menu" data-kt-menu="true">
 
 				@php
-					$rootModules = \App\Models\Module::whereNull('parent_id')->with('children.children')->orderBy('order')->get();
+					// Seluruh pohon menu dalam 2 query (modul + permission view), lihat Module::menuTree()
+					$rootModules = \App\Models\Module::menuTree();
 				@endphp
 
 				@foreach ($rootModules as $module)

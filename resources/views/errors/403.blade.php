@@ -48,8 +48,10 @@
         <div class="code">403</div>
         <h1>Kamu tidak punya akses ke halaman ini</h1>
         <p>Hubungi admin toko kalau kamu merasa seharusnya bisa membuka halaman ini.</p>
-        <a href="{{ auth()->check() ? route('dashboard') : route('login') }}" class="btn">
-            Kembali ke Dashboard
+        <a href="{{ url()->previous(auth()->check() ? url('/') : route('login')) }}"
+           onclick="if (window.history.length > 1) { window.history.back(); return false; }"
+           class="btn">
+            Kembali ke Halaman Sebelumnya
         </a>
     </div>
 </body>

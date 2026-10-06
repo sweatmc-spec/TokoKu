@@ -19,7 +19,7 @@ class WorkLocationSeeder extends Seeder
             ]
         );
         WorkLocation::updateOrCreate(
-            ['name' => 'Toko Pusat'],
+            ['name' => 'Rumah'],
             [
                 'latitude' => -0.033216,
                 'longitude' => 109.327482,
