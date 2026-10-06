@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             UnitSeeder::class,
             ProfitHargaSeeder::class,
+            PaymentMethodSeeder::class,
+            VariantOptionSeeder::class,
         ]);
     }
 }

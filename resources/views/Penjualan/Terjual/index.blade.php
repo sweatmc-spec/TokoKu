@@ -46,22 +46,6 @@
         </div>
 
         <div class="card-body py-4">
-            {{-- Ringkasan (ikut berubah sesuai filter) --}}
-            <div id="terjualSummary" class="d-flex flex-wrap align-items-center gap-7 mb-6">
-                <div>
-                    <div class="text-gray-500 fs-7 fw-semibold">Transaksi</div>
-                    <div class="fs-2x fw-bold text-gray-900 lh-sm">{{ number_format($summary['count'], 0, ',', '.') }}</div>
-                </div>
-                <div class="border-start border-gray-300 h-40px"></div>
-                <div>
-                    <div class="text-gray-500 fs-7 fw-semibold">Pendapatan</div>
-                    <div class="fs-2x fw-bold text-gray-900 lh-sm">{{ \App\Models\Terjual::rupiah($summary['revenue']) }}</div>
-                </div>
-                @if ($adaFilter)
-                    <span class="badge badge-light-primary fs-7">Sesuai filter</span>
-                @endif
-            </div>
-
             {{-- Bagian ini diganti otomatis saat mencari / memfilter / pindah halaman --}}
             <div id="terjualTable">
                 <div class="table-responsive">
@@ -177,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const dariEl  = document.getElementById('filterDari');
     const sampaiEl = document.getElementById('filterSampai');
     const resetBtn = document.getElementById('btnReset');
-    const swapIds = ['terjualSummary', 'terjualTable'];
+    const swapIds = ['terjualTable'];
 
     // ---- Datepicker (flatpickr bawaan Metronic) ----
     const fpBase = {
