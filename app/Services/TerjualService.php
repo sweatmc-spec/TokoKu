@@ -150,6 +150,10 @@ class TerjualService
         // barang yang sudah ada di transaksi ini tetap memakai harga lamanya
         $keepPrice = $old->mapWithKeys(fn ($item) => [$item->item_key => (int) $item->unit_price]);
 
+        // ...dan harga modalnya juga (termasuk yang null): laba transaksi lama tidak berubah walau harga beli berubah.
+        // Dipakai has() (bukan isset): modal yang memang null tetap dianggap "sudah ada", tidak dihitung ulang.
+        $keepModal = $old->mapWithKeys(fn ($item) => [$item->item_key => $item->harga_modal]);
+
         $lines  = [];
         $errors = [];
 
@@ -182,6 +186,12 @@ class TerjualService
 
             $price = (int) $price;
 
+            // Harga modal per pcs: baris lama tetap pakai modalnya; barang baru = harga beli terakhir produk
+            // (products.last_cost, diisi saat barang dicentang datang di Cek Paket).
+            $modal = $keepModal->has($row['key'])
+                ? $keepModal->get($row['key'])
+                : (($product->last_cost !== null && (float) $product->last_cost > 0) ? round((float) $product->last_cost, 2) : null);
+
             $product->stock -= $row['qty'];
             if ($variant) {
                 $variant->stock -= $row['qty'];
@@ -194,6 +204,7 @@ class TerjualService
                 'variant_label'      => $variantLabel,
                 'qty'                => $row['qty'],
                 'unit_price'         => $price,
+                'harga_modal'        => $modal,
                 'total_price'        => $price * $row['qty'],
             ];
         }

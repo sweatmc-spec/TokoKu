@@ -17,14 +17,15 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\TerjualController;
+use App\Http\Controllers\PemasukanController;
+use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\Laporan\LaporanKeuanganController;
+use App\Http\Controllers\Laporan\LaporanPenjualanController;
+use App\Http\Controllers\MasterData\KategoriPengeluaranController;
 use App\Http\Controllers\MasterData\ProductController;
 use App\Http\Controllers\MasterData\ProductVariantController;
 use App\Http\Controllers\MasterData\VariantOptionController;
 use App\Http\Controllers\MasterData\ProfitHargaController;
-use App\Http\Controllers\MasterData\KategoriPengeluaranController;
-use App\Http\Controllers\PemasukanController;
-use App\Http\Controllers\PengeluaranController;
-use App\Http\Controllers\Laporan\LaporanKeuanganController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -101,39 +102,6 @@ Route::middleware('auth')->group(function () {
             Route::put('/{pengajuan}', 'update')->name('update')->middleware('permission:absensi-pengajuan.edit');
             Route::delete('/{pengajuan}', 'destroy')->name('destroy')->middleware('permission:absensi-pengajuan.delete');
         });
-
-        /*
-        |----------------------------------------------------------------------
-        | Keuangan -> modul "keuangan-pemasukan" dan "keuangan-pengeluaran"
-        |----------------------------------------------------------------------
-        | Baris Penjualan / Pembelian dibuat otomatis, jadi create/edit/delete hanya
-        | berlaku untuk baris Manual / Operasional (dicek lagi di controller).
-        */
-        Route::prefix('keuangan')
-            ->name('keuangan.')
-            ->group(function () {
-
-                Route::controller(PemasukanController::class)
-                    ->prefix('pemasukan')
-                    ->name('pemasukan.')
-                    ->group(function () {
-                        Route::get('/', 'index')->name('index')->middleware('permission:keuangan-pemasukan.view');
-                        Route::post('/', 'store')->name('store')->middleware('permission:keuangan-pemasukan.create');
-                        Route::put('/{pemasukan}', 'update')->name('update')->middleware('permission:keuangan-pemasukan.edit');
-                        Route::delete('/{pemasukan}', 'destroy')->name('destroy')->middleware('permission:keuangan-pemasukan.delete');
-                    });
-
-                Route::controller(PengeluaranController::class)
-                    ->prefix('pengeluaran')
-                    ->name('pengeluaran.')
-                    ->group(function () {
-                        Route::get('/', 'index')->name('index')->middleware('permission:keuangan-pengeluaran.view');
-                        Route::get('/{pengeluaran}/bukti', 'bukti')->name('bukti')->middleware('permission:keuangan-pengeluaran.view');
-                        Route::post('/', 'store')->name('store')->middleware('permission:keuangan-pengeluaran.create');
-                        Route::put('/{pengeluaran}', 'update')->name('update')->middleware('permission:keuangan-pengeluaran.edit');
-                        Route::delete('/{pengeluaran}', 'destroy')->name('destroy')->middleware('permission:keuangan-pengeluaran.delete');
-                    });
-            });
    /*
     |----------------------------------------------------------------------
     | Master Data -> modul "master-nama-sales", "master-kategori-produk", "master-metode-pembayaran", "master-unit", "master-produk-sales"
@@ -320,17 +288,50 @@ Route::middleware('auth')->group(function () {
                 });
         });
 
-     /*
+    /*
+    |----------------------------------------------------------------------
+    | Keuangan -> modul "keuangan-pemasukan" dan "keuangan-pengeluaran"
+    |----------------------------------------------------------------------
+    | Baris Penjualan / Pembelian dibuat otomatis, jadi create/edit/delete hanya
+    | berlaku untuk baris Manual / Operasional (dicek lagi di controller).
+    */
+    Route::prefix('keuangan')
+        ->name('keuangan.')
+        ->group(function () {
+
+            Route::controller(PemasukanController::class)
+                ->prefix('pemasukan')
+                ->name('pemasukan.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index')->middleware('permission:keuangan-pemasukan.view');
+                    Route::post('/', 'store')->name('store')->middleware('permission:keuangan-pemasukan.create');
+                    Route::put('/{pemasukan}', 'update')->name('update')->middleware('permission:keuangan-pemasukan.edit');
+                    Route::delete('/{pemasukan}', 'destroy')->name('destroy')->middleware('permission:keuangan-pemasukan.delete');
+                });
+
+            Route::controller(PengeluaranController::class)
+                ->prefix('pengeluaran')
+                ->name('pengeluaran.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index')->middleware('permission:keuangan-pengeluaran.view');
+                    Route::get('/{pengeluaran}/bukti', 'bukti')->name('bukti')->middleware('permission:keuangan-pengeluaran.view');
+                    Route::post('/', 'store')->name('store')->middleware('permission:keuangan-pengeluaran.create');
+                    Route::put('/{pengeluaran}', 'update')->name('update')->middleware('permission:keuangan-pengeluaran.edit');
+                    Route::delete('/{pengeluaran}', 'destroy')->name('destroy')->middleware('permission:keuangan-pengeluaran.delete');
+                });
+        });
+
+    /*
     |----------------------------------------------------------------------
     | Laporan -> modul "laporan-keuangan", "laporan-penjualan", "laporan-stok"
     |----------------------------------------------------------------------
     | Semua laporan read-only. view = melihat, export = Excel dan PDF.
-    | Laporan Penjualan dan Laporan Stok ditambahkan ke grup ini pada tahap berikutnya.
+    | Laporan Stok ditambahkan ke grup ini pada tahap berikutnya.
     */
     Route::prefix('laporan')
         ->name('laporan.')
         ->group(function () {
- 
+
             Route::controller(LaporanKeuanganController::class)
                 ->prefix('keuangan')
                 ->name('keuangan.')
@@ -338,6 +339,15 @@ Route::middleware('auth')->group(function () {
                     Route::get('/', 'index')->name('index')->middleware('permission:laporan-keuangan.view');
                     Route::get('/excel', 'excel')->name('excel')->middleware('permission:laporan-keuangan.export');
                     Route::get('/pdf', 'pdf')->name('pdf')->middleware('permission:laporan-keuangan.export');
+                });
+
+            Route::controller(LaporanPenjualanController::class)
+                ->prefix('penjualan')
+                ->name('penjualan.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index')->middleware('permission:laporan-penjualan.view');
+                    Route::get('/excel', 'excel')->name('excel')->middleware('permission:laporan-penjualan.export');
+                    Route::get('/pdf', 'pdf')->name('pdf')->middleware('permission:laporan-penjualan.export');
                 });
         });
 

@@ -10,12 +10,14 @@ class TerjualItem extends Model
     protected $fillable = [
         'terjual_id', 'product_id', 'product_variant_id',
         'product_name', 'variant_label',
-        'qty', 'unit_price', 'total_price',
+        'qty', 'unit_price', 'harga_modal', 'total_price',
     ];
 
     protected $casts = [
         'qty'         => 'integer',
         'unit_price'  => 'integer',
+        // modal per pcs (2 desimal, dari products.last_cost); null = tidak diketahui
+        'harga_modal' => 'float',
         'total_price' => 'integer',
     ];
 

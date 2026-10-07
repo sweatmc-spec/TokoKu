@@ -149,7 +149,8 @@ class ModuleSeeder extends Seeder
             [
                 'name' => 'Laporan', 'slug' => 'laporan', 'icon' => 'ki-chart-simple', 'order' => 7,
                 'children' => [
-                    ['name' => 'Laporan Penjualan', 'slug' => 'laporan-penjualan', 'active_pattern' => 'laporan/penjualan*', 'permissions' => ['view'], 'order' => 1],
+                    // view -> melihat laporan, export -> unduh Excel dan PDF / cetak
+                    ['name' => 'Laporan Penjualan', 'slug' => 'laporan-penjualan', 'route' => 'laporan.penjualan.index', 'active_pattern' => 'laporan/penjualan*', 'permissions' => ['view', 'export'], 'order' => 1],
                     ['name' => 'Laporan Stok', 'slug' => 'laporan-stok', 'active_pattern' => 'laporan/stok*', 'permissions' => ['view'], 'order' => 2],
                     // view -> melihat laporan, export -> unduh Excel dan PDF / cetak
                     ['name' => 'Laporan Keuangan', 'slug' => 'laporan-keuangan', 'route' => 'laporan.keuangan.index', 'active_pattern' => 'laporan/keuangan*', 'permissions' => ['view', 'export'], 'order' => 3],
