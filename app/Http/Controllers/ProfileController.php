@@ -42,13 +42,13 @@ class ProfileController extends Controller
         $user->name = $validated['name'];
         $user->username = $validated['username'];
 
-        if ($request->hasFile('avatar')) {
+        if ($request->hasFile('avatars')) {
             // Hapus foto lama di supabase_avatars sebelum menyimpan yang baru
             if ($user->avatar) {
                 Storage::disk('supabase_avatars')->delete($user->avatar);
             }
 
-            $user->avatar = $request->file('avatar')->store('avatars', 'supabase_avatars');
+            $user->avatar = $request->file('avatars')->store('avatars', 'supabase_avatars');
         }
 
         $user->save();

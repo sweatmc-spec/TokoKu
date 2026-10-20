@@ -18,7 +18,7 @@ class PengeluaranController extends Controller
      * 'local' = storage/app/private. Mau pakai MinIO seperti foto Pengajuan? Buat disk baru
      * di config/filesystems.php (mis. 'supabase_pengeluaran') lalu ganti nilai ini.
      */
-    private const DISK = 'local';
+    private const DISK = 'supabase_Pengeluaran';
 
     public function index(Request $request)
     {

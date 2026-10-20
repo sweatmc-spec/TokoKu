@@ -10,20 +10,20 @@ class WorkLocationSeeder extends Seeder
     public function run(): void
     {
         WorkLocation::updateOrCreate(
-            ['name' => 'Toko Pusat'],
+            ['name' => 'Rumah'],
             [
-                'latitude' => -0.039338,
-                'longitude' => 109.306520,
-                'radius_meters' => 100, // sesuaikan lagi kalau perlu, ini cuma nilai testing
+                'latitude' =>  -0.0270833,
+                'longitude' =>  111.4562857,
+                'radius_meters' => 100, 
                 'is_active' => true,
             ]
         );
-        WorkLocation::updateOrCreate(
-            ['name' => 'Rumah'],
+         WorkLocation::updateOrCreate(
+            ['name' => 'Sekolah'],
             [
-                'latitude' => -0.033216,
-                'longitude' => 109.327482,
-                'radius_meters' => 100, // sesuaikan lagi kalau perlu, ini cuma nilai testing
+                'latitude' => -0.033500,
+                'longitude' => 111.462700,
+                'radius_meters' => 100, 
                 'is_active' => true,
             ]
         );

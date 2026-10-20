@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Purchase extends Model
 {
@@ -97,5 +98,27 @@ class Purchase extends Model
         }
 
         $this->items()->whereNotIn('id', $keep)->delete();
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (Purchase $purchase) {
+            if (! $purchase->wasChanged('completed_at')) {
+                return;
+            }
+
+            if ($purchase->completed_at) {
+                app(\App\Services\KeuanganService::class)
+                    ->catatPembelian($purchase, $purchase->completed_at);
+            } else {
+                // dibuka kembali: hapus catatan pengeluaran otomatisnya
+                $purchase->pengeluaran()->delete();
+            }
+        });
+    }
+
+    public function pengeluaran(): HasOne
+    {
+        return $this->hasOne(Pengeluaran::class);
     }
 }

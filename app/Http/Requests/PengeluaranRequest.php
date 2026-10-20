@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Validation\Rule;
 
 /** Validasi tambah / ubah Pengeluaran OPERASIONAL (dipakai store dan update). */
@@ -28,7 +29,7 @@ class PengeluaranRequest extends FormRequest
             // "Kulakan" (is_system) sengaja tidak boleh dipilih: itu hanya dibuat otomatis dari Cek Paket
             'kategori_pengeluaran_id' => [
                 'required', 'integer',
-                Rule::exists('kategori_pengeluarans', 'id')->where('is_system', false),
+                Rule::exists('kategori_pengeluarans', 'id')->where(fn (Builder $query) => $query->where('is_system', false)),
             ],
 
             'keterangan'  => ['nullable', 'string', 'max:255'],

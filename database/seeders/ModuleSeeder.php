@@ -151,7 +151,8 @@ class ModuleSeeder extends Seeder
                 'children' => [
                     // view -> melihat laporan, export -> unduh Excel dan PDF / cetak
                     ['name' => 'Laporan Penjualan', 'slug' => 'laporan-penjualan', 'route' => 'laporan.penjualan.index', 'active_pattern' => 'laporan/penjualan*', 'permissions' => ['view', 'export'], 'order' => 1],
-                    ['name' => 'Laporan Stok', 'slug' => 'laporan-stok', 'active_pattern' => 'laporan/stok*', 'permissions' => ['view'], 'order' => 2],
+                    // view -> melihat laporan, export -> unduh Excel, PDF / cetak, dan kartu stok
+                    ['name' => 'Laporan Stok', 'slug' => 'laporan-stok', 'route' => 'laporan.stok.index', 'active_pattern' => 'laporan/stok*', 'permissions' => ['view', 'export'], 'order' => 2],
                     // view -> melihat laporan, export -> unduh Excel dan PDF / cetak
                     ['name' => 'Laporan Keuangan', 'slug' => 'laporan-keuangan', 'route' => 'laporan.keuangan.index', 'active_pattern' => 'laporan/keuangan*', 'permissions' => ['view', 'export'], 'order' => 3],
                 ],

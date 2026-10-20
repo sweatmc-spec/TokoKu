@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StockLedger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -102,14 +103,20 @@ class PurchaseItem extends Model
         $product->save();
 
         // Pakaian: stok juga dicatat per varian
+        $variantId = null;
+
         if ($this->product_variant_id) {
             $variant = ProductVariant::whereKey($this->product_variant_id)->lockForUpdate()->first();
 
             if ($variant) {
                 $variant->stock += $this->qty_pcs;
                 $variant->save();
+                $variantId = $variant->id;
             }
         }
+
+        // buku mutasi stok (Laporan Stok): barang masuk, di transaction yang sama
+        app(StockLedger::class)->pembelian($this, $product->id, $variantId);
 
         if ($this->product_id !== $product->id) {
             $this->update(['product_id' => $product->id]);
@@ -143,6 +150,11 @@ class PurchaseItem extends Model
         if ($variant) {
             $variant->stock -= $this->qty_pcs;
             $variant->save();
+        }
+
+        // buku mutasi stok (Laporan Stok): centang dibatalkan = barang keluar dari stok
+        if ($product) {
+            app(StockLedger::class)->pembelianBatal($this, $product->id, $variant?->id);
         }
     }
 }

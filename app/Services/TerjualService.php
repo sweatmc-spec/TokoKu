@@ -131,6 +131,9 @@ class TerjualService
             $this->restore($old, $products, $variants);
             $this->saveStock($products, $variants);
 
+            // buku mutasi stok (Laporan Stok): seluruh isi transaksi kembali ke stok
+            app(StockLedger::class)->batalTerjual($terjual, $old);
+
             $terjual->delete();   // detail ikut terhapus (cascade)
         }, 3);
     }
@@ -253,6 +256,9 @@ class TerjualService
 
         // catat otomatis ke Pemasukan (satu transaction dengan penyimpanan transaksi dan stok)
         app(KeuanganService::class)->catatPenjualan($terjual);
+
+        // buku mutasi stok (Laporan Stok): catat selisih isi lama dan baru, di transaction yang sama
+        app(StockLedger::class)->sinkronTerjual($terjual, $old, $lines);
 
         return $terjual->load('items');
     }

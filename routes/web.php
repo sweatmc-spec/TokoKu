@@ -21,6 +21,7 @@ use App\Http\Controllers\PemasukanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\Laporan\LaporanKeuanganController;
 use App\Http\Controllers\Laporan\LaporanPenjualanController;
+use App\Http\Controllers\Laporan\LaporanStokController;
 use App\Http\Controllers\MasterData\KategoriPengeluaranController;
 use App\Http\Controllers\MasterData\ProductController;
 use App\Http\Controllers\MasterData\ProductVariantController;
@@ -35,6 +36,7 @@ use Illuminate\Support\Facades\Route;
 | Belum login -> /login. Sudah login -> halaman pertama yang boleh
 | diakses oleh role-nya (dicek dinamis dari permission, bukan hardcode).
 */
+
 Route::get('/', HomeController::class)->name('home');
 
 /*
@@ -102,7 +104,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{pengajuan}', 'update')->name('update')->middleware('permission:absensi-pengajuan.edit');
             Route::delete('/{pengajuan}', 'destroy')->name('destroy')->middleware('permission:absensi-pengajuan.delete');
         });
-   /*
+    /*
     |----------------------------------------------------------------------
     | Master Data -> modul "master-nama-sales", "master-kategori-produk", "master-metode-pembayaran", "master-unit", "master-produk-sales"
     |----------------------------------------------------------------------
@@ -112,7 +114,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('master-data')
         ->name('master-data.')
         ->group(function () {
- 
+
             // Nama Sales  -> modul "master-nama-sales"
             Route::controller(SalesController::class)
                 ->prefix('nama-sales')
@@ -123,12 +125,12 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{sale}', 'update')->name('update')->middleware('permission:master-nama-sales.edit');
                     Route::delete('/{sale}', 'destroy')->name('destroy')->middleware('permission:master-nama-sales.delete');
                 });
- 
+
             // Kategori (view only)  -> modul "master-kategori-produk"
             Route::get('/kategori', [CategoryController::class, 'index'])
                 ->name('categories.index')
                 ->middleware('permission:master-kategori-produk.view');
- 
+
             // Metode Pembayaran  -> modul "master-metode-pembayaran"
             Route::controller(PaymentMethodController::class)
                 ->prefix('metode-pembayaran')
@@ -152,7 +154,7 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{kategori_pengeluaran}', 'update')->name('update')->middleware('permission:master-kategori-pengeluaran.edit');
                     Route::delete('/{kategori_pengeluaran}', 'destroy')->name('destroy')->middleware('permission:master-kategori-pengeluaran.delete');
                 });
- 
+
             // Unit / satuan pembelian  -> modul "master-unit"
             Route::controller(UnitController::class)
                 ->prefix('unit')
@@ -163,8 +165,8 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{unit}', 'update')->name('update')->middleware('permission:master-unit.edit');
                     Route::delete('/{unit}', 'destroy')->name('destroy')->middleware('permission:master-unit.delete');
                 });
-                //profit harga
-               Route::controller(ProfitHargaController::class)
+            //profit harga
+            Route::controller(ProfitHargaController::class)
                 ->prefix('profit-harga')
                 ->name('profit-harga.')
                 ->group(function () {
@@ -173,7 +175,7 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{profit_harga}', 'update')->name('update')->middleware('permission:master-profit-harga.edit');
                     Route::delete('/{profit_harga}', 'destroy')->name('destroy')->middleware('permission:master-profit-harga.delete');
                 });
- 
+
             // Produk Sales (produk yang dijual tiap sales)  -> modul "master-produk-sales"
             Route::controller(ProductController::class)
                 ->prefix('produk-sales')
@@ -184,7 +186,7 @@ Route::middleware('auth')->group(function () {
                     Route::put('/{product}', 'update')->name('update')->middleware('permission:master-produk-sales.edit');
                     Route::delete('/{product}', 'destroy')->name('destroy')->middleware('permission:master-produk-sales.delete');
                 });
- 
+
             // Halaman varian produk (ukuran, warna, dll) - hanya untuk kategori yang punya varian, mis. Pakaian
             Route::controller(ProductVariantController::class)
                 ->prefix('produk-sales')
@@ -193,15 +195,17 @@ Route::middleware('auth')->group(function () {
                     Route::get('/{product}', 'show')->name('show')->middleware('permission:master-produk-sales.view');
                     Route::put('/{product}/variants', 'sync')->name('variants.sync')->middleware('permission:master-produk-sales.edit');
                 });
- 
+
             // Variasi Pakaian: Warna, Ukuran, Bahan, Model
             // Satu controller untuk keempatnya; jenisnya dibawa lewat default 'type'.
-            foreach ([
-                'color'    => ['warna',  'master-warna'],
-                'size'     => ['ukuran', 'master-ukuran'],
-                'material' => ['bahan',  'master-bahan'],
-                'style'    => ['model',  'master-model'],
-            ] as $type => [$uri, $slug]) {
+            foreach (
+                [
+                    'color'    => ['warna',  'master-warna'],
+                    'size'     => ['ukuran', 'master-ukuran'],
+                    'material' => ['bahan',  'master-bahan'],
+                    'style'    => ['model',  'master-model'],
+                ] as $type => [$uri, $slug]
+            ) {
                 Route::controller(VariantOptionController::class)
                     ->prefix($uri)
                     ->name($type . '.')
@@ -213,7 +217,7 @@ Route::middleware('auth')->group(function () {
                     });
             }
         });
- 
+
     /*
     |----------------------------------------------------------------------
     | Produk -> modul "stok-*", "produk-tambah", "cek-paket"
@@ -222,30 +226,30 @@ Route::middleware('auth')->group(function () {
     | stok hanya view. Barang dicentang datang di halaman detail; kalau
     | semua sudah datang, pembelian selesai dan stok ditambah.
     */
- 
-    // Stok Pakaian / ATK / Miscellaneous (satu controller, kategori lewat slug)
-   Route::prefix('stok')
-       ->name('stok.')
-       ->group(function () {
-           Route::get('/pakaian', [StockController::class, 'index'])->defaults('categorySlug', 'pakaian')
-               ->name('pakaian')->middleware('permission:stok-pakaian.view');
-           Route::get('/atk', [StockController::class, 'index'])->defaults('categorySlug', 'atk')
-               ->name('atk')->middleware('permission:stok-atk.view');
-           Route::get('/miscellaneous', [StockController::class, 'index'])->defaults('categorySlug', 'miscellaneous')
-               ->name('miscellaneous')->middleware('permission:stok-miscellaneous.view');
 
-           // Rincian varian satu produk (khusus kategori yang punya varian, mis. Pakaian)
-           Route::get('/pakaian/{product}', [StockController::class, 'show'])->defaults('categorySlug', 'pakaian')
-               ->name('pakaian.show')->middleware('permission:stok-pakaian.view');
-       });
- 
+    // Stok Pakaian / ATK / Miscellaneous (satu controller, kategori lewat slug)
+    Route::prefix('stok')
+        ->name('stok.')
+        ->group(function () {
+            Route::get('/pakaian', [StockController::class, 'index'])->defaults('categorySlug', 'pakaian')
+                ->name('pakaian')->middleware('permission:stok-pakaian.view');
+            Route::get('/atk', [StockController::class, 'index'])->defaults('categorySlug', 'atk')
+                ->name('atk')->middleware('permission:stok-atk.view');
+            Route::get('/miscellaneous', [StockController::class, 'index'])->defaults('categorySlug', 'miscellaneous')
+                ->name('miscellaneous')->middleware('permission:stok-miscellaneous.view');
+
+            // Rincian varian satu produk (khusus kategori yang punya varian, mis. Pakaian)
+            Route::get('/pakaian/{product}', [StockController::class, 'show'])->defaults('categorySlug', 'pakaian')
+                ->name('pakaian.show')->middleware('permission:stok-pakaian.view');
+        });
+
     // Tambah Produk (form pembelian dari sales) + Cek Paket (daftar, detail, edit, centang datang)
     Route::controller(PurchaseController::class)
         ->name('purchases.')
         ->group(function () {
             Route::get('/stok/tambah', 'create')->name('create')->middleware('permission:produk-tambah.view');
             Route::post('/stok/tambah', 'store')->name('store')->middleware('permission:produk-tambah.create');
- 
+
             Route::prefix('cek-paket')->group(function () {
                 Route::get('/', 'index')->name('index')->middleware('permission:cek-paket.view');
                 Route::get('/{purchase}', 'show')->name('show')->middleware('permission:cek-paket.view');
@@ -348,6 +352,16 @@ Route::middleware('auth')->group(function () {
                     Route::get('/', 'index')->name('index')->middleware('permission:laporan-penjualan.view');
                     Route::get('/excel', 'excel')->name('excel')->middleware('permission:laporan-penjualan.export');
                     Route::get('/pdf', 'pdf')->name('pdf')->middleware('permission:laporan-penjualan.export');
+                });
+
+            Route::controller(LaporanStokController::class)
+                ->prefix('stok')
+                ->name('stok.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index')->middleware('permission:laporan-stok.view');
+                    Route::get('/excel', 'excel')->name('excel')->middleware('permission:laporan-stok.export');
+                    Route::get('/pdf', 'pdf')->name('pdf')->middleware('permission:laporan-stok.export');
+                    Route::get('/kartu', 'kartu')->name('kartu')->middleware('permission:laporan-stok.export');
                 });
         });
 

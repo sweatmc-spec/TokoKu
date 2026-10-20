@@ -35,6 +35,8 @@
         .profit-opt { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
         .profit-opt-price { font-variant-numeric: tabular-nums; }
         .profit-opt-code { color: var(--bs-secondary-color, #9ca3af); font-size: .85em; letter-spacing: .03em; }
+        .price-panel { border-left: 3px solid var(--bs-primary); border-radius: .475rem; padding: 1.25rem; height: 100%; }
+        .price-panel.sell { border-left-color: var(--bs-success); }
         .variant-box { border-left: 3px solid var(--bs-primary); padding-left: 1rem; }
     </style>
 @endpush
@@ -145,63 +147,76 @@
             </div>
 
             <div class="row g-5 mt-0">
-                <div class="col-lg-5">
-                    <div class="mb-5 d-none" id="packWrap">
-                        <label for="pcs_per_unit" class="form-label required">Isi per box (pcs)</label>
-                        <input type="text" inputmode="numeric" id="pcs_per_unit" class="form-control" placeholder="Contoh: 50" autocomplete="off">
-                    </div>
+                {{-- 1) Harga beli dari sales --}}
+                <div class="col-lg-6">
+                    <div class="price-panel bg-light">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="ki-outline ki-wallet fs-3 text-primary"></i>
+                            <span class="fw-bold fs-5">Harga beli dari sales</span>
+                        </div>
+                        <div class="text-muted fs-8 mb-5">Harga modal yang dibayar toko ke sales</div>
 
-                    <label for="unit_price" class="form-label required">
-                        <span id="priceLabel">Harga per unit</span>
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">Rp</span>
-                        <input type="text" inputmode="numeric" id="unit_price" class="form-control" placeholder="0" autocomplete="off">
-                    </div>
+                        <div class="mb-5 d-none" id="packWrap">
+                            <label for="pcs_per_unit" class="form-label required">Isi per box (pcs)</label>
+                            <input type="text" inputmode="numeric" id="pcs_per_unit" class="form-control" placeholder="Contoh: 50" autocomplete="off">
+                        </div>
 
-                    <div class="mt-5">
-                        <label for="profit_harga" class="form-label">Profit Harga <span class="text-muted fs-8">(harga jual per pcs)</span></label>
+                        <label for="unit_price" class="form-label required"><span id="priceLabel">Harga per unit</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" inputmode="numeric" id="unit_price" class="form-control" placeholder="0" autocomplete="off">
+                        </div>
+
+                        <div class="row g-4 mt-4">
+                            <div class="col-4">
+                                <div class="text-muted fs-8 mb-1">Kuantitas total</div>
+                                <div class="fw-bold fs-5 stat-value" id="pvPcs">0 pcs</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted fs-8 mb-1">Harga beli per pcs</div>
+                                <div class="fw-bold fs-5 stat-value" id="pvPerPcs">Rp 0,00</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted fs-8 mb-1">Subtotal item</div>
+                                <div class="fw-bold fs-5 text-primary stat-value" id="pvSubtotal">Rp 0,00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 2) Harga jual toko (profit) --}}
+                <div class="col-lg-6">
+                    <div class="price-panel sell bg-light">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="ki-outline ki-tag fs-3 text-success"></i>
+                            <span class="fw-bold fs-5">Harga jual toko (profit)</span>
+                        </div>
+                        <div class="text-muted fs-8 mb-5">Harga jual per pcs di toko. Opsional</div>
+
+                        <label for="profit_harga" class="form-label">Profit Harga</label>
                         <select id="profit_harga" class="w-100">
                             <option value=""></option>
                             @foreach ($config['profitHarga'] as $ph)
                                 <option value="{{ $ph['id'] }}">{{ $ph['harga_formatted'] }}@if ($ph['code']) {{ $ph['code'] }}@endif</option>
                             @endforeach
                         </select>
-                        <div class="form-text">Opsional. Cari berdasarkan harga atau code. Kelola di Master Data &gt; Profit Harga.</div>
-                    </div>
-                </div>
+                        <div class="form-text">Cari berdasarkan harga atau code. Kelola di Master Data &gt; Profit Harga.</div>
 
-                <div class="col-lg-7">
-                    <div class="bg-light rounded p-5 h-100">
-                        <div class="row g-4">
-                            <div class="col-4">
-                                <div class="text-muted fs-8 mb-1">Kuantitas total</div>
-                                <div class="fw-bold fs-5 stat-value" id="pvPcs">0 pcs</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted fs-8 mb-1">Harga per pcs</div>
-                                <div class="fw-bold fs-5 stat-value" id="pvPerPcs">Rp 0</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted fs-8 mb-1">Subtotal item</div>
-                                <div class="fw-bold fs-5 text-primary stat-value" id="pvSubtotal">Rp 0</div>
-                            </div>
-                        </div>
-
-                        <div class="profit-info d-none mt-4" id="pvProfitWrap">
+                        <div class="profit-info d-none mt-5" id="pvProfitWrap">
                             Profit per pcs <span class="text-muted">(harga jual)</span>: <strong id="pvProfit">Rp 0,00</strong><span class="text-muted" id="pvProfitCode"></span>
                         </div>
-
-                        <div class="alert alert-warning d-none mt-4 mb-0 py-3" id="itemError" role="alert"></div>
-
-                        <div class="d-flex gap-2 mt-5">
-                            <button type="button" class="btn btn-primary" id="btnAddItem">
-                                <i class="ki-outline ki-plus fs-3"></i><span id="btnAddText">Tambah ke daftar</span>
-                            </button>
-                            <button type="button" class="btn btn-light d-none" id="btnCancelEdit">Batal ubah</button>
-                        </div>
+                        <div class="text-muted fs-8 mt-5" id="pvProfitEmpty">Belum dipilih. Pilih Profit Harga untuk melihat harga jual per pcs.</div>
                     </div>
                 </div>
+            </div>
+
+            <div class="alert alert-warning d-none mt-5 mb-0 py-3" id="itemError" role="alert"></div>
+
+            <div class="d-flex gap-2 mt-5">
+                <button type="button" class="btn btn-primary" id="btnAddItem">
+                    <i class="ki-outline ki-plus fs-3"></i><span id="btnAddText">Tambah ke daftar</span>
+                </button>
+                <button type="button" class="btn btn-light d-none" id="btnCancelEdit">Batal ubah</button>
             </div>
         </div>
     </div>
@@ -387,7 +402,7 @@
             altInput: true,
             altFormat: 'd/m/Y',
             altInputClass: 'form-control',
-            defaultDate: APP.date || null,        // kosong saat tambah baru -> placeholder tampil
+            defaultDate: APP.date || new Date(),     // otomatis hari ini saat tambah baru; edit memakai tanggal tersimpan
             disableMobile: true
         });
         if (dateFp && dateFp.altInput) dateFp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
@@ -604,6 +619,7 @@
             // Profit per pcs = Profit Harga terpilih (harga jual per pcs); terpisah dari harga beli dari sales
             const profit = profitMap[$profit.val()];
             $('#pvProfitWrap').toggleClass('d-none', !profit);
+            $('#pvProfitEmpty').toggleClass('d-none', !!profit);
             if (profit) {
                 $('#pvProfit').text(rp(profit.harga));
                 $('#pvProfitCode').text(profit.code ? ' (' + profit.code + ')' : '');
