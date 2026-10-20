@@ -19,7 +19,7 @@
         $pct           = $totalItems ? (int) round($receivedItems / $totalItems * 100) : 0;
         $completed     = (bool) $purchase->completed_at;
         $canReceive    = auth()->user()->can('cek-paket.receive');
-        $totalLabel    = 'Rp ' . number_format($purchase->total_amount, 0, ',', '.');
+        $totalLabel    = 'Rp ' . number_format($purchase->total_amount, 2, ',', '.');
     @endphp
 
     {{-- ============ Info pembelian (hanya baca) ============ --}}
@@ -169,8 +169,8 @@
                                     @endif
                                 </td>
                                 <td class="text-end">{{ number_format($item->qty_pcs, 0, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($item->unit_price, 2, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($item->total_price, 2, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>

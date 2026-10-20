@@ -31,7 +31,7 @@
              'sub' => 'dari ' . $fmt($stats['karyawan'] ?? 0) . ' karyawan', 'color' => 'success', 'icon' => 'ki-check-circle', 'paths' => 2],
             ['label' => 'Sakit / Izin',   'value' => $fmt($stats['izin'] ?? 0),
              'sub' => 'hari ini',          'color' => 'warning', 'icon' => 'ki-information-5', 'paths' => 3],
-            ['label' => 'Belum Absen',    'value' => $fmt($stats['belum_absen'] ?? 0),
+            ['label' => 'Belum Absen',    'value' => $fmt($stats['belu0m_absen'] ?? 0),
              'sub' => 'hari ini',          'color' => 'danger', 'icon' => 'ki-cross-circle', 'paths' => 2],
         ];
     } else {
