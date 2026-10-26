@@ -95,10 +95,12 @@ class PurchaseItem extends Model
         $product->last_cost = round($this->unit_price / $this->pcs_per_unit, 2);
         $product->last_received_at = now();
 
-        // Harga Jual produk mengikuti Profit Harga yang dipilih saat Tambah Produk
-        // (kalau barang ini tidak memilih, Harga Jual yang sudah ada dibiarkan).
-        if ($this->profit_harga_id) {
-            $product->profit_harga_id = $this->profit_harga_id;
+        // Harga Jual produk = Profit Harga dari paket TERBARU (menurut tanggal pembelian) di antara barang yang
+        // sudah dicek datang dan memilih Profit Harga. Hasilnya TIDAK bergantung pada urutan centang.
+        // Paket yang tidak memilih Profit Harga tidak mengubah Harga Jual.
+        $hargaJual = $this->hargaJualTerbaru($product->id, termasukIni: true);
+        if ($hargaJual !== null) {
+            $product->profit_harga_id = $hargaJual;
         }
         $product->save();
 
@@ -121,6 +123,49 @@ class PurchaseItem extends Model
         if ($this->product_id !== $product->id) {
             $this->update(['product_id' => $product->id]);
         }
+    }
+
+    /**
+     * Profit Harga yang berlaku untuk satu produk: milik paket TERBARU di antara barang yang sudah dicek datang
+     * dan memilih Profit Harga. "Terbaru" = tanggal pembelian terbesar, lalu id paket, lalu id barang
+     * (jadi dua paket pada tanggal yang sama tetap punya pemenang yang pasti).
+     *
+     * @param  bool  $termasukIni  true  = barang ini dianggap sudah dicek (saat dicentang, karena received_at baru
+     *                                      diisi SESUDAH applyToStock)
+     *                             false = barang ini dikeluarkan dari perhitungan (saat centang dibatalkan, karena
+     *                                      received_at baru dikosongkan SESUDAH revertFromStock)
+     */
+    protected function hargaJualTerbaru(int $productId, bool $termasukIni): ?int
+    {
+        $lain = static::query()
+            ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
+            ->where('purchase_items.product_id', $productId)
+            ->where('purchase_items.id', '!=', $this->id)
+            ->whereNotNull('purchase_items.received_at')
+            ->whereNotNull('purchase_items.profit_harga_id')
+            ->orderByDesc('purchases.purchase_date')
+            ->orderByDesc('purchases.id')
+            ->orderByDesc('purchase_items.id')
+            ->first([
+                'purchase_items.profit_harga_id',
+                'purchases.purchase_date',
+                'purchases.id as purchase_id',
+                'purchase_items.id as item_id',
+            ]);
+
+        if (! $termasukIni || ! $this->profit_harga_id) {
+            return $lain ? (int) $lain->profit_harga_id : null;
+        }
+
+        if (! $lain) {
+            return (int) $this->profit_harga_id;
+        }
+
+        // bandingkan urutan "terbaru": [tanggal pembelian, id paket, id barang]
+        $ini = [$this->purchase->purchase_date->format('Y-m-d'), (int) $this->purchase_id, (int) $this->id];
+        $itu = [substr((string) $lain->purchase_date, 0, 10), (int) $lain->purchase_id, (int) $lain->item_id];
+
+        return $ini >= $itu ? (int) $this->profit_harga_id : (int) $lain->profit_harga_id;
     }
 
     /**
@@ -150,6 +195,17 @@ class PurchaseItem extends Model
         if ($variant) {
             $variant->stock -= $this->qty_pcs;
             $variant->save();
+        }
+
+        // Centang dibatalkan: Harga Jual kembali ke paket terbaru yang MASIH tercentang (kalau ada).
+        // Kalau tidak ada paket lain yang memilih Profit Harga, Harga Jual dibiarkan (tidak ada riwayat untuk dikembalikan).
+        if ($product) {
+            $hargaJual = $this->hargaJualTerbaru($product->id, termasukIni: false);
+
+            if ($hargaJual !== null && (int) $product->profit_harga_id !== $hargaJual) {
+                $product->profit_harga_id = $hargaJual;
+                $product->save();
+            }
         }
 
         // buku mutasi stok (Laporan Stok): centang dibatalkan = barang keluar dari stok

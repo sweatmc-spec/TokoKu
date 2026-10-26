@@ -38,6 +38,14 @@
         .price-panel { border-left: 3px solid var(--bs-primary); border-radius: .475rem; padding: 1.25rem; height: 100%; }
         .price-panel.sell { border-left-color: var(--bs-success); }
         .variant-box { border-left: 3px solid var(--bs-primary); padding-left: 1rem; }
+
+        /* Tabel daftar barang: muat di dalam card, tanpa scroll samping */
+        #itemsWrap table { width: 100%; }
+        #itemsWrap th, #itemsWrap td { padding-left: .5rem; padding-right: .5rem; }
+        #itemsWrap th.text-end, #itemsWrap td.text-end { white-space: nowrap; }
+
+        /* Halaman tidak boleh bergeser ke samping */
+        html, body { overflow-x: hidden; }
     </style>
 @endpush
 
@@ -236,7 +244,7 @@
                 Belum ada barang. Isi form di atas lalu klik "Tambah ke daftar".
             </div>
 
-            <div class="table-responsive d-none" id="itemsWrap">
+            <div class="d-none" id="itemsWrap">
                 <table class="table table-row-dashed align-middle gs-0 gy-4">
                     <thead>
                         <tr class="fw-bold text-muted fs-7">
@@ -296,11 +304,6 @@
 @push('scripts')
     {{-- jQuery, Select2, dan flatpickr sudah ada di plugins.bundle.js (layout), jadi tidak dimuat ulang --}}
     <script>
-        // Tampilkan error JS di kotak merah halaman (sementara, untuk diagnosa)
-        window.addEventListener('error', function (e) {
-            var box = document.getElementById('formAlert');
-            if (box) { box.classList.remove('d-none'); box.textContent = 'Error JS: ' + e.message + ' (baris ' + e.lineno + ')'; }
-        });
         window.APP  = @json($config);
         window.CSRF = '{{ csrf_token() }}';
     </script>
