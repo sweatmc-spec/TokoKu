@@ -22,7 +22,9 @@
 
 <form id="profile-form" action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
     @csrf
-
+@if ($errors->any())
+    <div class="alert alert-danger">{{ implode(' ', $errors->all()) }}</div>
+@endif
     <div class="row g-5">
 
         {{-- FOTO PROFIL --}}

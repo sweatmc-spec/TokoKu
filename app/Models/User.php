@@ -10,35 +10,30 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'username', 'email', 'avatar', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
-
-    protected $fillable = [
-    'name', 'username', 'email', 'avatar', 'password',
-];
-
-public function getAvatarUrlAttribute(): string
-{
-    if (! $this->avatar) {
-        return asset('assets/media/avatars/blank.png');
-    }
-
-    return Storage::disk('supabase_avatars')->url($this->avatar);
-
     /**
-     * backup minio untuk test kalau mau
-    *$host   = request()->getHost();   // otomatis ambil host yang lagi dipakai browser
-    *$bucket = config('filesystems.disks.supabase_avatars.bucket');
+     * URL foto profil. Foto dibaca lewat route profile.avatar.show
+     * (ProfileController@avatar), bukan langsung dari endpoint S3 Supabase.
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        if (! $this->avatar) {
+            return asset('assets/media/avatars/blank.png');
+        }
 
-    *return "http://{$host}:9000/{$bucket}/{$this->avatar}"; */
-}
+        // 'v' supaya browser memuat ulang foto setelah diganti
+        return route('profile.avatar.show', [
+            'user' => $this->getKey(),
+            'v'    => $this->updated_at?->timestamp,
+        ]);
+    }
 
     /**
      * Get the attributes that should be cast.

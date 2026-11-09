@@ -58,7 +58,8 @@
                 <div class="nilai pos">{{ $rp($r['nilai']) }}</div>
                 <div class="label">
                     Stok x harga beli terakhir
-                    @if ($r['tanpa_harga'] > 0)<br>{{ $r['tanpa_harga'] }} barang tanpa harga beli@endif
+                    @if ($r['tanpa_harga'] > 0)<br>{{ $r['tanpa_harga'] }} barang tanpa harga beli
+                    @endif
                 </div>
             </td>
         </tr>
