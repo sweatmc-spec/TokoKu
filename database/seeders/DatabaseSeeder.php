@@ -19,6 +19,11 @@ class DatabaseSeeder extends Seeder
             ModuleSeeder::class,
             AbsensiPermissionSeeder::class,
             WorkLocationSeeder::class,
+            CategorySeeder::class,
+            UnitSeeder::class,
+            ProfitHargaSeeder::class,
+            PaymentMethodSeeder::class,
+            VariantOptionSeeder::class,
         ]);
     }
 }

@@ -47,9 +47,11 @@
     <div class="card">
         <div class="code">404</div>
         <h1>Halaman tidak ditemukan</h1>
-        <p>URL yang kamu tuju tidak ada. Coba cek lagi alamatnya, atau kembali ke dashboard.</p>
-        <a href="{{ auth()->check() ? route('dashboard') : route('login') }}" class="btn">
-            Kembali ke Dashboard
+        <p>URL yang kamu tuju tidak ada. Coba cek lagi alamatnya, atau kembali ke halaman sebelumnya.</p>
+        <a href="{{ url()->previous(auth()->check() ? url('/') : route('login')) }}"
+           onclick="if (window.history.length > 1) { window.history.back(); return false; }"
+           class="btn">
+            Kembali ke Halaman Sebelumnya
         </a>
     </div>
 </body>

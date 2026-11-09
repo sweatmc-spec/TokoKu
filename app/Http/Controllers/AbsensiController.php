@@ -3,19 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
+use App\Models\Pengajuan;
 use App\Models\User;
 use App\Services\GeolocationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AbsensiController extends Controller
 {
-    /** Permission Spatie: boleh melihat absensi SEMUA karyawan (diberikan ke admin). */
-    private const PERMISSION_READ_ALL = 'absensi.read-all';
+    /** Permission (modul "absensi-total"): boleh melihat absensi SEMUA karyawan, diberikan ke admin. */
+    private const PERMISSION_READ_ALL = 'absensi-total.view-all';
 
     /** Asumsi jam kerja per hari kerja (Senin-Jumat), dipakai untuk target jam kerja. */
     private const JAM_KERJA_PER_HARI = 8;
@@ -56,6 +58,8 @@ class AbsensiController extends Controller
         return view('absensi.index', [
             'absensiMasuk' => $absensiMasuk,
             'absensiPulang' => $absensiPulang,
+            // sakit/izin/cuti yang menunggu atau sudah diterima dan mencakup hari ini (null = tidak ada)
+            'pengajuanHariIni' => $this->pengajuanAktifPadaTanggal($userId, now()),
             'logAbsensiMasuk' => $logHariIni('masuk'),
             'logAbsensiPulang' => $logHariIni('pulang'),
         ]);
@@ -77,7 +81,7 @@ class AbsensiController extends Controller
     /**
      * "Total Absensi".
      *  - Karyawan: selalu laporan miliknya sendiri.
-     *  - Admin (punya absensi.read-all) tanpa ?user_id : rekap semua karyawan.
+     *  - Admin (punya absensi-total.view-all) tanpa ?user_id : rekap semua karyawan.
      *  - Admin dengan ?user_id : laporan detail karyawan tersebut.
      *
      * Pengecekan izin dilakukan di server, jadi karyawan tidak bisa mengintip orang
@@ -102,10 +106,11 @@ class AbsensiController extends Controller
             'activeQuick' => $activeQuick,
         ] = $this->resolvePeriod($request);
 
-        $firstAbsenDate = $this->firstAbsenDate($user->id);
+        $firstAbsenDate = $this->firstActivityDate($user->id);
 
         $hasil = $this->hitungPeriode(
             $this->absensiByDate($user->id, $from, $effectiveTo),
+            $this->izinByDate($this->pengajuanAktif([$user->id], $from, $effectiveTo), $from, $effectiveTo),
             $firstAbsenDate,
             $from,
             $effectiveTo
@@ -119,6 +124,7 @@ class AbsensiController extends Controller
 
         $prevStat = $this->hitungPeriode(
             $this->absensiByDate($user->id, $prevFrom, $prevTo),
+            $this->izinByDate($this->pengajuanAktif([$user->id], $prevFrom, $prevTo), $prevFrom, $prevTo),
             $firstAbsenDate,
             $prevFrom,
             $prevTo
@@ -147,6 +153,10 @@ class AbsensiController extends Controller
             'targetJamKerja' => $targetJamKerja,
             'jamKerjaPersen' => $targetMenitKerja > 0 ? round($stat['menit_kerja'] / $targetMenitKerja * 100, 1) : 0.0,
             'lupaPulangCount' => $stat['lupa_pulang'],
+            'izinSakitCount' => $stat['izin'] + $stat['sakit'],
+            'izinCount' => $stat['izin'],
+            'sakitCount' => $stat['sakit'],
+            'menungguCount' => $stat['menunggu'],
             'tanpaKeteranganCount' => $stat['tanpa_keterangan'],
             'prevFrom' => $prevFrom,
             'prevTo' => $prevTo,
@@ -180,32 +190,63 @@ class AbsensiController extends Controller
 
         $userIds = $users->pluck('id');
 
-        // 2 query untuk seluruh halaman ini (bukan per karyawan) supaya tetap ringan
+        // beberapa query untuk seluruh halaman ini (bukan per karyawan) supaya tetap ringan
         $absensiPerUser = Absensi::whereIn('user_id', $userIds)
             ->whereBetween('recorded_at', [$from, $effectiveTo])
             ->get()
             ->groupBy('user_id');
 
-        $firstAbsenPerUser = Absensi::whereIn('user_id', $userIds)
+        $firstMasukPerUser = Absensi::whereIn('user_id', $userIds)
             ->where('type', 'masuk')
             ->selectRaw('user_id, MIN(recorded_at) as first_at')
             ->groupBy('user_id')
             ->pluck('first_at', 'user_id');
 
-        $rows = $users->getCollection()->map(function (User $user) use ($absensiPerUser, $firstAbsenPerUser, $from, $effectiveTo) {
+        $firstPengajuanPerUser = Pengajuan::whereIn('user_id', $userIds)
+            ->whereIn('status', ['menunggu', 'disetujui'])
+            ->selectRaw('user_id, MIN(tanggal_mulai) as first_at')
+            ->groupBy('user_id')
+            ->pluck('first_at', 'user_id');
+
+        $pengajuanPerUser = $this->pengajuanAktif($userIds->all(), $from, $effectiveTo)
+            ->groupBy('user_id');
+
+        // status HARI INI tiap karyawan: sudah masuk / sakit / izin / cuti / belum absen
+        $masukHariIni = Absensi::whereIn('user_id', $userIds)
+            ->where('type', 'masuk')
+            ->whereDate('recorded_at', now()->toDateString())
+            ->pluck('user_id')
+            ->flip();
+
+        $pengajuanHariIni = Pengajuan::whereIn('user_id', $userIds)
+            ->whereIn('status', ['menunggu', 'disetujui'])
+            ->whereDate('tanggal_mulai', '<=', now())
+            ->whereDate('tanggal_selesai', '>=', now())
+            ->get()
+            ->keyBy('user_id');
+
+        $rows = $users->getCollection()->map(function (User $user) use (
+            $absensiPerUser, $pengajuanPerUser, $firstMasukPerUser, $firstPengajuanPerUser,
+            $masukHariIni, $pengajuanHariIni, $from, $effectiveTo
+        ) {
             $byDate = ($absensiPerUser->get($user->id) ?? collect())
                 ->groupBy(fn ($item) => $item->recorded_at->toDateString());
 
-            $first = $firstAbsenPerUser->get($user->id);
-            $first = $first ? Carbon::parse($first)->startOfDay() : null;
+            $izinByDate = $this->izinByDate($pengajuanPerUser->get($user->id) ?? collect(), $from, $effectiveTo);
 
-            $stat = $this->hitungPeriode($byDate, $first, $from, $effectiveTo)['stat'];
+            $first = $this->tanggalPalingAwal(
+                $firstMasukPerUser->get($user->id),
+                $firstPengajuanPerUser->get($user->id)
+            );
+
+            $stat = $this->hitungPeriode($byDate, $izinByDate, $first, $from, $effectiveTo)['stat'];
 
             return [
                 'user' => $user,
                 'stat' => $stat,
                 'jam_kerja' => $this->formatJamMenit($stat['menit_kerja']),
                 'persen' => $this->persen($stat['hadir'], $stat['hari_kerja']),
+                'hari_ini' => $this->statusHariIni($masukHariIni->has($user->id), $pengajuanHariIni->get($user->id)),
             ];
         });
 
@@ -268,17 +309,81 @@ class AbsensiController extends Controller
     }
 
     /**
-     * Hari pertama user pernah absen masuk (sepanjang sejarah). Hari-hari sebelum ini
-     * tidak dihitung "Tanpa Keterangan" karena dia belum mulai memakai sistem absensi.
+     * Hari pertama user "mulai aktif": yang paling awal antara absen masuk pertama dan
+     * tanggal mulai pengajuan sakit/izin/cuti (yang masih menunggu atau sudah diterima).
+     * Hari-hari SEBELUM ini tidak dihitung "Tanpa Keterangan". Pengajuan ikut dihitung
+     * supaya karyawan yang hari pertamanya langsung sakit tetap tercatat sakit, bukan "Belum Mulai".
      */
-    private function firstAbsenDate(int $userId): ?Carbon
+    private function firstActivityDate(int $userId): ?Carbon
     {
-        $first = Absensi::where('user_id', $userId)
+        $firstMasuk = Absensi::where('user_id', $userId)
             ->where('type', 'masuk')
-            ->orderBy('recorded_at')
-            ->value('recorded_at');
+            ->min('recorded_at');
 
-        return $first ? Carbon::parse($first)->startOfDay() : null;
+        $firstPengajuan = Pengajuan::where('user_id', $userId)
+            ->whereIn('status', ['menunggu', 'disetujui'])
+            ->min('tanggal_mulai');
+
+        return $this->tanggalPalingAwal($firstMasuk, $firstPengajuan);
+    }
+
+    /** Tanggal paling awal dari beberapa nilai (yang null diabaikan), jam diset ke awal hari. */
+    private function tanggalPalingAwal(?string ...$tanggals): ?Carbon
+    {
+        $awal = null;
+
+        foreach ($tanggals as $tanggal) {
+            if (! $tanggal) {
+                continue;
+            }
+
+            $carbon = Carbon::parse($tanggal)->startOfDay();
+            if ($awal === null || $carbon->lt($awal)) {
+                $awal = $carbon;
+            }
+        }
+
+        return $awal;
+    }
+
+    /**
+     * Pengajuan (menunggu atau sudah diterima) milik user yang mencakup tanggal tertentu.
+     * Yang ditolak tidak dihitung — karyawan yang pengajuannya ditolak boleh absen seperti biasa.
+     */
+    private function pengajuanAktifPadaTanggal(int $userId, Carbon $date): ?Pengajuan
+    {
+        return Pengajuan::where('user_id', $userId)
+            ->whereIn('status', ['menunggu', 'disetujui'])
+            ->whereDate('tanggal_mulai', '<=', $date)
+            ->whereDate('tanggal_selesai', '>=', $date)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Status satu karyawan HARI INI untuk kolom "Hari Ini" di rekap admin.
+     *
+     * @return array{label: string, badge: string, title: ?string}
+     */
+    private function statusHariIni(bool $sudahMasuk, ?Pengajuan $pengajuan): array
+    {
+        if ($sudahMasuk) {
+            return ['label' => 'Sudah Masuk', 'badge' => 'badge-light-success', 'title' => null];
+        }
+
+        if ($pengajuan) {
+            $menunggu = $pengajuan->status === 'menunggu';
+
+            return [
+                'label' => $pengajuan->type_label . ($menunggu ? ' (Menunggu)' : ''),
+                'badge' => $menunggu ? 'badge-light-warning' : $pengajuan->type_badge,
+                'title' => $pengajuan->alasan, // tampil sebagai tooltip saat kursor diarahkan
+            ];
+        }
+
+        return now()->isWeekday()
+            ? ['label' => 'Belum Absen', 'badge' => 'badge-light-secondary', 'title' => null]
+            : ['label' => 'Libur', 'badge' => 'badge-light-secondary', 'title' => null];
     }
 
     /**
@@ -295,20 +400,74 @@ class AbsensiController extends Controller
     }
 
     /**
+     * Pengajuan sakit/izin/cuti yang AKTIF (menunggu atau sudah diterima) dan tanggalnya
+     * bersinggungan dengan rentang [$from, $to], untuk satu atau beberapa user sekaligus.
+     * Yang ditolak tidak ikut. Yang masih menunggu ikut supaya harinya tampil "Sakit (Menunggu)"
+     * di laporan — bukan "Tanpa Keterangan" — tapi tidak dihitung ke angka Sakit/Izin sampai diterima.
+     */
+    private function pengajuanAktif(array $userIds, Carbon $from, Carbon $to): Collection
+    {
+        return Pengajuan::whereIn('user_id', $userIds)
+            ->whereIn('status', ['menunggu', 'disetujui'])
+            ->whereDate('tanggal_mulai', '<=', $to)
+            ->whereDate('tanggal_selesai', '>=', $from)
+            ->get();
+    }
+
+    /**
+     * Pecah pengajuan (yang bisa mencakup beberapa hari) jadi peta per-tanggal,
+     * dipotong supaya tidak keluar dari rentang [$from, $to]. Dipakai untuk SATU user
+     * dalam satu pemanggilan — untuk rekap banyak user, kelompokkan per user_id dulu
+     * sebelum memanggil ini.
+     */
+    private function izinByDate(Collection $pengajuans, Carbon $from, Carbon $to): Collection
+    {
+        $batasAwal = $from->copy()->startOfDay();
+        $batasAkhir = $to->copy()->startOfDay();
+        $map = collect();
+
+        foreach ($pengajuans as $pengajuan) {
+            $cursor = $pengajuan->tanggal_mulai->copy()->max($batasAwal);
+            $akhir = $pengajuan->tanggal_selesai->copy()->min($batasAkhir);
+
+            while ($cursor->lte($akhir)) {
+                $key = $cursor->toDateString();
+
+                // normalnya tidak pernah ada dua pengajuan aktif di tanggal yang sama, tapi kalau ada,
+                // yang sudah diterima diutamakan daripada yang masih menunggu
+                if (! $map->has($key) || $pengajuan->status === 'disetujui') {
+                    $map->put($key, $pengajuan);
+                }
+
+                $cursor->addDay();
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Inti perhitungan: dipakai laporan satu orang, periode pembanding, dan rekap admin,
      * supaya aturannya selalu sama.
-     *  - Hari kerja = Senin-Jumat, mulai dari hari pertama user absen
-     *  - Hadir = ada absen masuk; Lupa Absen Pulang = masuk tanpa pulang;
-     *    Tanpa Keterangan = hari kerja tanpa absen masuk
+     *  - Hari kerja = Senin-Jumat, mulai dari hari pertama user aktif (lihat firstActivityDate())
+     *  - Hadir = ada absen masuk; Lupa Absen Pulang = masuk tanpa pulang
+     *  - Sakit/Izin/Cuti = ada pengajuan DITERIMA yang mencakup tanggal itu (masuk hitungan sakit/izin)
+     *  - Sakit/Izin/Cuti (Menunggu) = pengajuan belum diperiksa admin: tampil di rincian, dihitung
+     *    terpisah di 'menunggu', dan TIDAK dihitung "Tanpa Keterangan"
+     *  - Tanpa Keterangan = hari kerja tanpa absen masuk dan tanpa pengajuan aktif
      *
      * @param  Collection  $absensiByDate  absensi user, dikelompokkan per tanggal
+     * @param  Collection  $izinByDate  pengajuan aktif user, dipetakan per tanggal (lihat izinByDate())
      * @return array{stat: array<string,int>, rincian: Collection}
      */
-    private function hitungPeriode(Collection $absensiByDate, ?Carbon $firstAbsenDate, Carbon $from, Carbon $effectiveTo): array
+    private function hitungPeriode(Collection $absensiByDate, Collection $izinByDate, ?Carbon $firstAbsenDate, Carbon $from, Carbon $effectiveTo): array
     {
         $stat = [
             'hadir' => 0,
             'lupa_pulang' => 0,
+            'sakit' => 0,
+            'izin' => 0,
+            'menunggu' => 0,
             'tanpa_keterangan' => 0,
             'hari_kerja' => 0,
             'menit_kerja' => 0,
@@ -318,12 +477,15 @@ class AbsensiController extends Controller
         $cursor = $from->copy()->startOfDay();
         while ($cursor->lte($effectiveTo)) {
             $isWorkday = $cursor->isWeekday(); // asumsi hari kerja Senin-Jumat
+            $dateKey = $cursor->toDateString();
 
-            $group = $absensiByDate->get($cursor->toDateString());
+            $group = $absensiByDate->get($dateKey);
             $masuk = $group?->firstWhere('type', 'masuk');
             $pulang = $group?->firstWhere('type', 'pulang');
+            $pengajuan = $izinByDate->get($dateKey); // pengajuan aktif yang mencakup tanggal ini, kalau ada
+            $pengajuanMenunggu = $pengajuan?->status === 'menunggu';
 
-            // sebelum absen pertama (atau belum pernah absen) = belum mulai, tidak dihitung
+            // sebelum hari pertama aktif (atau belum pernah aktif) = belum mulai, tidak dihitung
             $belumMulai = $firstAbsenDate === null || $cursor->lt($firstAbsenDate);
 
             $menitHariIni = 0;
@@ -338,6 +500,8 @@ class AbsensiController extends Controller
                 $stat['menit_kerja'] += $menitHariIni;
             } elseif ($masuk) {
                 $status = 'Lupa Absen Pulang';
+            } elseif ($pengajuan) { // sakit / izin / cuti
+                $status = $pengajuan->type_label . ($pengajuanMenunggu ? ' (Menunggu)' : '');
             } elseif ($isWorkday) {
                 $status = 'Tanpa Keterangan';
             } else {
@@ -353,7 +517,15 @@ class AbsensiController extends Controller
                     $stat['lupa_pulang']++;
                 }
                 if (! $masuk) {
-                    $stat['tanpa_keterangan']++;
+                    if ($pengajuanMenunggu) {
+                        $stat['menunggu']++;
+                    } elseif ($pengajuan?->type === 'sakit') {
+                        $stat['sakit']++;
+                    } elseif ($pengajuan) { // izin atau cuti yang sudah diterima
+                        $stat['izin']++;
+                    } else {
+                        $stat['tanpa_keterangan']++;
+                    }
                 }
             }
 
@@ -364,7 +536,9 @@ class AbsensiController extends Controller
                 'masuk' => $masuk,
                 'pulang' => $pulang,
                 'durasi' => ($masuk && $pulang) ? $this->formatJamMenit($menitHariIni) : '-',
-                'lokasi' => $masuk?->workLocation?->name ?? $pulang?->workLocation?->name ?? '-',
+                'lokasi' => $masuk?->workLocation?->name
+                    ?? $pulang?->workLocation?->name
+                    ?? ($pengajuan ? Str::limit($pengajuan->alasan, 40) : '-'),
             ]);
 
             $cursor->addDay();
@@ -397,7 +571,28 @@ class AbsensiController extends Controller
             'photo' => ['required', 'image', 'max:5120'], // maks 5MB
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ], [
+            'photo.required' => 'Foto absensi wajib diambil.',
+            'photo.image' => 'File harus berupa gambar.',
+            'photo.max' => 'Ukuran foto terlalu besar. Maksimal 5 MB.',
+            // muncul kalau melebihi upload_max_filesize di php.ini
+            'photo.uploaded' => 'Foto gagal diunggah karena ukurannya terlalu besar. Maksimal 5 MB.',
         ]);
+
+        // hari ini tercatat sakit / izin / cuti (menunggu atau diterima) = tidak boleh absen apa pun.
+        // Kalau pengajuannya ditolak admin, blok ini otomatis hilang dan absen bisa seperti biasa.
+        $pengajuanHariIni = $this->pengajuanAktifPadaTanggal(auth()->id(), now());
+
+        if ($pengajuanHariIni) {
+            return back()->withErrors([
+                'type' => sprintf(
+                    'Hari ini Anda tercatat %s (%s), jadi tidak bisa absen %s.',
+                    strtolower($pengajuanHariIni->type_label),
+                    $pengajuanHariIni->status === 'menunggu' ? 'menunggu pemeriksaan admin' : 'sudah diterima',
+                    $validated['type']
+                ),
+            ]);
+        }
 
         // batas 1x absen per jenis per hari — dicek di server, bukan cuma di UI,
         // supaya tidak bisa dilewati dengan mengubah <select> lewat devtools

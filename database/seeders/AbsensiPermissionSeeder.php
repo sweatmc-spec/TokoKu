@@ -19,6 +19,11 @@ class AbsensiPermissionSeeder extends Seeder
             ['name' => 'absensi.read-all', 'guard_name' => 'web'],
         );
 
+        // Boleh melihat semua pengajuan sakit/izin/cuti dan menyetujui/menolaknya.
+        Permission::firstOrCreate(
+            ['name' => 'absensi.approve', 'guard_name' => 'web'],
+        );
+
         // Sama seperti RoleSeeder: admin selalu memegang semua permission.
         Role::findByName('admin')->syncPermissions(Permission::all());
 
