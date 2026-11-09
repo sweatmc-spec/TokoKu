@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -21,39 +21,44 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update nama, username, dan (opsional) foto profil user.
+     * Update nama dan (opsional) foto profil user.
      */
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                'alpha_dash',
-                Rule::unique('users', 'username')->ignore($user->id),
-            ],
+            'name'   => ['required', 'string', 'max:255'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         $user->name = $validated['name'];
-        $user->username = $validated['username'];
 
-        if ($request->hasFile('avatars')) {
+        if ($request->hasFile('avatar')) {
             // Hapus foto lama di supabase_avatars sebelum menyimpan yang baru
             if ($user->avatar) {
                 Storage::disk('supabase_avatars')->delete($user->avatar);
             }
 
-            $user->avatar = $request->file('avatars')->store('avatars', 'supabase_avatars');
+            // Bucket sudah bernama "avatars", jadi foldernya cukup id user: {id}/namafile.ext
+            $user->avatar = $request->file('avatar')->store((string) $user->id, 'supabase_avatars');
         }
 
         $user->save();
 
         return back()->with('status', 'profile-updated');
+    }
+
+    /**
+     * Tampilkan foto profil (dipakai route profile.avatar.show).
+     */
+    public function avatar(User $user)
+    {
+        abort_unless($user->avatar, 404);
+
+        return Storage::disk('supabase_avatars')->response($user->avatar, null, [
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     /**
